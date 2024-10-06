@@ -20,8 +20,6 @@ export const RABBIT_QUEUE_PREFIX = rabbitmqPrefix ? `${rabbitmqPrefix}_` : '';
 
 export const MAX_EVENT_LOOP_PROCESSING_TIME = 50;
 
-export const INTERNAL_SYNC_QUEUE = 'sync';
-export const INTERNAL_PLAYBOOK_QUEUE = 'playbook';
 export const EVENT_TYPE_CREATE = 'create';
 export const EVENT_TYPE_DELETE = 'delete';
 export const EVENT_TYPE_DEPENDENCIES = 'init-dependencies';
@@ -69,6 +67,10 @@ export const INDEX_INFERRED_RELATIONSHIPS = `${ES_INDEX_PREFIX}_inferred_relatio
 export const READ_INDEX_INFERRED_RELATIONSHIPS = `${INDEX_INFERRED_RELATIONSHIPS}*`;
 export const isInferredIndex = (index) => index.startsWith(INDEX_INFERRED_ENTITIES) || index.startsWith(INDEX_INFERRED_RELATIONSHIPS);
 
+// indices that we only use as read only, not created anymore on new platforms
+export const DEPRECATED_INDICES = [
+  INDEX_STIX_CYBER_OBSERVABLE_RELATIONSHIPS,
+];
 export const WRITE_PLATFORM_INDICES = [
   INDEX_DELETED_OBJECTS,
   INDEX_FILES,

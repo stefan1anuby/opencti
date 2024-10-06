@@ -27,6 +27,7 @@ export const BYPASS = 'BYPASS';
 export const KNOWLEDGE_KNUPDATE_KNBYPASSREFERENCE = 'KNOWLEDGE_KNUPDATE_KNBYPASSREFERENCE';
 export const KNOWLEDGE_KNUPDATE_KNBYPASSFIELDS = 'KNOWLEDGE_KNUPDATE_KNBYPASSFIELDS';
 export const SETTINGS_SET_ACCESSES = 'SETTINGS_SETACCESSES';
+export const SETTINGS_SUPPORT = 'SETTINGS_SUPPORT';
 export const TAXIIAPI_SETCOLLECTIONS = 'TAXIIAPI_SETCOLLECTIONS';
 export const CSVMAPPERS = 'CSVMAPPERS';
 export const KNOWLEDGE = 'KNOWLEDGE';
@@ -439,8 +440,8 @@ export const userFilterStoreElements = async (context: AuthContext, user: AuthUs
         // If element is shared, user must have a matching sharing organization
         return elementOrganizations.some((r) => userOrganizations.includes(r));
       }
-      // If no platform organization is set, user can access empty sharing and dedicated sharing
-      return elementOrganizations.length === 0 || elementOrganizations.some((r) => userOrganizations.includes(r));
+      // If no platform organization is set, user can
+      return true;
     });
   };
   return telemetry(context, user, 'FILTERING store filter', {
@@ -490,8 +491,8 @@ export const isUserCanAccessStixElement = async (context: AuthContext, user: Aut
     // If element is shared, user must have a matching sharing organization
     return elementOrganizations.some((r) => userOrganizations.includes(r));
   }
-  // If no platform organization is set, user can access empty sharing and dedicated sharing
-  return elementOrganizations.length === 0 || elementOrganizations.some((r) => userOrganizations.includes(r));
+  // If no platform organization is set, user can access
+  return true;
 };
 
 // region member access

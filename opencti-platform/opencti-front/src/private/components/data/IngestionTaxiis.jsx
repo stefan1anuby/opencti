@@ -49,14 +49,9 @@ const IngestionTaxii = () => {
       width: '25%',
       isSortable: true,
     },
-    version: {
-      label: 'Version',
-      width: '10%',
-      isSortable: true,
-    },
     ingestion_running: {
-      label: 'Running',
-      width: '10%',
+      label: 'Status',
+      width: '20%',
       isSortable: false,
     },
     last_execution_date: {
@@ -87,7 +82,7 @@ const IngestionTaxii = () => {
   }
   return (
     <div className={classes.container}>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Data') }, { label: t_i18n('Ingestion') }, { label: t_i18n('TAXII feeds'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Data') }, { label: t_i18n('Ingestion') }, { label: t_i18n('TAXII feeds'), current: true }]} />
       <IngestionMenu/>
       <ListLines
         helpers={storageHelpers}

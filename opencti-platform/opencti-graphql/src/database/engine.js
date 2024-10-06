@@ -171,13 +171,14 @@ const OPENSEARCH_ENGINE = 'opensearch';
 export const ES_MAX_CONCURRENCY = conf.get('elasticsearch:max_concurrency');
 export const ES_DEFAULT_WILDCARD_PREFIX = booleanConf('elasticsearch:search_wildcard_prefix', false);
 export const ES_DEFAULT_FUZZY = booleanConf('elasticsearch:search_fuzzy', false);
+export const ES_INIT_RETRO_MAPPING_MIGRATION = booleanConf('elasticsearch:internal_init_retro_compatible_mapping_migration', false);
 export const ES_MINIMUM_FIXED_PAGINATION = 20; // When really low pagination is better by default
 export const ES_DEFAULT_PAGINATION = conf.get('elasticsearch:default_pagination_result') || 500;
 export const ES_MAX_PAGINATION = conf.get('elasticsearch:max_pagination_result') || 5000;
 export const MAX_BULK_OPERATIONS = conf.get('elasticsearch:max_bulk_operations') || 5000;
 export const MAX_RUNTIME_RESOLUTION_SIZE = conf.get('elasticsearch:max_runtime_resolutions') || 5000;
 export const MAX_RELATED_CONTAINER_RESOLUTION = conf.get('elasticsearch:max_container_resolutions') || 1000;
-const ES_INDEX_PATTERN_SUFFIX = conf.get('elasticsearch:index_creation_pattern');
+export const ES_INDEX_PATTERN_SUFFIX = conf.get('elasticsearch:index_creation_pattern');
 const ES_MAX_RESULT_WINDOW = conf.get('elasticsearch:max_result_window') || 100000;
 const ES_INDEX_SHARD_NUMBER = conf.get('elasticsearch:number_of_shards');
 const ES_INDEX_REPLICA_NUMBER = conf.get('elasticsearch:number_of_replicas');
@@ -504,27 +505,6 @@ export const buildDataRestrictions = async (context, user, opts = {}) => {
         // Finally build the bool should search
         must.push({ bool: { should, minimum_should_match: 1 } });
       }
-    } else {
-      // Data with Empty granted_refs are granted to everyone
-      const should = [excludedEntityMatches];
-      should.push({ bool: { must_not: [{ exists: { field: buildRefRelationSearchKey(RELATION_GRANTED_TO) } }] } });
-      // Data with granted_refs users that participate to at least one
-      if (user.allowed_organizations.length > 0) {
-        const shouldOrgs = user.allowed_organizations
-          .map((m) => ({ match: { [buildRefRelationSearchKey(RELATION_GRANTED_TO)]: m.internal_id } }));
-        should.push(...shouldOrgs);
-      }
-      // User individual or data created by this individual must be accessible
-      if (user.individual_id) {
-        should.push({ match: { 'internal_id.keyword': user.individual_id } });
-        should.push({ match: { [buildRefRelationSearchKey(RELATION_CREATED_BY)]: user.individual_id } });
-      }
-      // For tasks
-      should.push({ match: { 'initiator_id.keyword': user.internal_id } });
-      // Access to authorized members
-      should.push(...buildUserMemberAccessFilter(user, { includeAuthorities: opts?.includeAuthorities, excludeEmptyAuthorizedMembers: true }));
-      // Finally build the bool should search
-      must.push({ bool: { should, minimum_should_match: 1 } });
     }
     // endregion
   }
@@ -556,7 +536,11 @@ const buildUserMemberAccessFilter = (user, opts) => {
 
 export const elIndexExists = async (indexName) => {
   const existIndex = await engine.indices.exists({ index: indexName });
-  return oebp(existIndex) === true;
+  return existIndex === true || oebp(existIndex) === true || existIndex.body === true;
+};
+export const elIndexGetAlias = async (indexName) => {
+  const indexAlias = await engine.indices.getAlias({ index: indexName });
+  return oebp(indexAlias);
 };
 export const elPlatformIndices = async () => {
   const listIndices = await engine.cat.indices({ index: `${ES_INDEX_PREFIX}*`, format: 'JSON' });
@@ -788,6 +772,196 @@ const computeIndexSettings = (rolloverAlias) => {
   };
 };
 
+// Only useful for option ES_INIT_RETRO_MAPPING_MIGRATION
+// This mode let the platform initialize old mapping protection before direct stop
+// Its only useful when old platform needs to be reindex
+const getRetroCompatibleMappings = () => {
+  const flattenedType = engine instanceof ElkClient ? 'flattened' : 'flat_object';
+  return {
+    internal_id: {
+      type: 'text',
+      fields: {
+        keyword: {
+          type: 'keyword',
+          normalizer: 'string_normalizer',
+          ignore_above: 512,
+        },
+      },
+    },
+    standard_id: {
+      type: 'text',
+      fields: {
+        keyword: {
+          type: 'keyword',
+          normalizer: 'string_normalizer',
+          ignore_above: 512,
+        },
+      },
+    },
+    name: {
+      type: 'text',
+      fields: {
+        keyword: {
+          type: 'keyword',
+          normalizer: 'string_normalizer',
+          ignore_above: 512,
+        },
+      },
+    },
+    height: {
+      type: 'nested',
+      properties: {
+        measure: { type: 'float' },
+        date_seen: { type: 'date' },
+      },
+    },
+    weight: {
+      type: 'nested',
+      properties: {
+        measure: { type: 'float' },
+        date_seen: { type: 'date' },
+      },
+    },
+    timestamp: {
+      type: 'date',
+    },
+    created: {
+      type: 'date',
+    },
+    created_at: {
+      type: 'date',
+    },
+    modified: {
+      type: 'date',
+    },
+    modified_at: {
+      type: 'date',
+    },
+    indexed_at: {
+      type: 'date',
+    },
+    uploaded_at: {
+      type: 'date',
+    },
+    first_seen: {
+      type: 'date',
+    },
+    last_seen: {
+      type: 'date',
+    },
+    start_time: {
+      type: 'date',
+    },
+    stop_time: {
+      type: 'date',
+    },
+    published: {
+      type: 'date',
+    },
+    valid_from: {
+      type: 'date',
+    },
+    valid_until: {
+      type: 'date',
+    },
+    observable_date: {
+      type: 'date',
+    },
+    event_date: {
+      type: 'date',
+    },
+    received_time: {
+      type: 'date',
+    },
+    processed_time: {
+      type: 'date',
+    },
+    completed_time: {
+      type: 'date',
+    },
+    ctime: {
+      type: 'date',
+    },
+    mtime: {
+      type: 'date',
+    },
+    atime: {
+      type: 'date',
+    },
+    current_state_date: {
+      type: 'date',
+    },
+    confidence: {
+      type: 'integer',
+    },
+    attribute_order: {
+      type: 'integer',
+    },
+    base_score: {
+      type: 'integer',
+    },
+    is_family: {
+      type: 'boolean',
+    },
+    number_observed: {
+      type: 'integer',
+    },
+    x_opencti_negative: {
+      type: 'boolean',
+    },
+    default_assignation: {
+      type: 'boolean',
+    },
+    x_opencti_detection: {
+      type: 'boolean',
+    },
+    x_opencti_order: {
+      type: 'integer',
+    },
+    import_expected_number: {
+      type: 'integer',
+    },
+    import_processed_number: {
+      type: 'integer',
+    },
+    x_opencti_score: {
+      type: 'integer',
+    },
+    connections: {
+      type: 'nested',
+    },
+    manager_setting: {
+      type: flattenedType,
+    },
+    context_data: {
+      properties: {
+        input: { type: flattenedType },
+      },
+    },
+    size: {
+      type: 'integer',
+    },
+    lastModifiedSinceMin: {
+      type: 'integer',
+    },
+    lastModified: {
+      type: 'date',
+    },
+    metaData: {
+      properties: {
+        order: {
+          type: 'integer',
+        },
+        inCarousel: {
+          type: 'boolean',
+        },
+        messages: { type: flattenedType },
+        errors: { type: flattenedType },
+      },
+    }
+  };
+};
+
 const updateIndexTemplate = async (name, mapping_properties) => {
   // compute pattern to be retro compatible for platform < 5.9
   // Before 5.9, only one pattern for all indices
@@ -799,7 +973,9 @@ const updateIndexTemplate = async (name, mapping_properties) => {
       index_patterns: [index_pattern],
       template: {
         settings: computeIndexSettings(name),
-        mappings: {
+        mappings: ES_INIT_RETRO_MAPPING_MIGRATION ? {
+          properties: getRetroCompatibleMappings()
+        } : {
           // Global option to prevent elastic to try any magic
           dynamic: 'strict',
           date_detection: false,

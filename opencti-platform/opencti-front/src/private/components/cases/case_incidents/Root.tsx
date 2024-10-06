@@ -31,8 +31,8 @@ import { useIsEnforceReference } from '../../../../utils/hooks/useEntitySettings
 import useGranted, { KNOWLEDGE_KNUPDATE_KNBYPASSREFERENCE, KNOWLEDGE_KNUPDATE } from '../../../../utils/hooks/useGranted';
 import { getCurrentTab, getPaddingRight } from '../../../../utils/utils';
 import CaseIncidentEdition from './CaseIncidentEdition';
-import useHelper from '../../../../utils/hooks/useHelper';
 import { useGetCurrentUserAccessRight } from '../../../../utils/authorizedMembers';
+import useHelper from '../../../../utils/hooks/useHelper';
 
 const subscription = graphql`
   subscription RootIncidentCaseSubscription($id: ID!) {
@@ -55,12 +55,6 @@ const caseIncidentQuery = graphql`
       standard_id
       entity_type
       currentUserAccessRight
-      authorized_members {
-        id
-        name
-        entity_type
-        access_right
-      }
       creators {
         id
         name
@@ -87,23 +81,6 @@ const caseIncidentQuery = graphql`
   }
 `;
 
-// Mutation to edit authorized members of a Case Incident
-const caseIncidentAuthorizedMembersMutation = graphql`
-  mutation RootCaseIncidentAuthorizedMembersMutation(
-    $id: ID!
-    $input: [MemberAccessInput!]
-  ) {
-    caseIncidentEditAuthorizedMembers(id: $id, input: $input) {
-      authorized_members {
-        id
-        name
-        entity_type
-        access_right
-      }
-    }
-  }
-`;
-
 const RootCaseIncidentComponent = ({ queryRef, caseId }) => {
   const subConfig = useMemo<GraphQLSubscriptionConfig<RootIncidentSubscription>>(
     () => ({
@@ -113,6 +90,8 @@ const RootCaseIncidentComponent = ({ queryRef, caseId }) => {
     [caseId],
   );
   const location = useLocation();
+  const { isFeatureEnable } = useHelper();
+  const isFABReplaced = isFeatureEnable('FAB_REPLACEMENT');
   const enableReferences = useIsEnforceReference('Case-Incident') && !useGranted([KNOWLEDGE_KNUPDATE_KNBYPASSREFERENCE]);
   const { t_i18n } = useFormatter();
   useSubscription(subConfig);
@@ -127,13 +106,11 @@ const RootCaseIncidentComponent = ({ queryRef, caseId }) => {
   }
   const isOverview = location.pathname === `/dashboard/cases/incidents/${caseData.id}`;
   const paddingRight = getPaddingRight(location.pathname, caseData.id, '/dashboard/cases/incidents', false);
-  const { isFeatureEnable } = useHelper();
 
   const currentAccessRight = useGetCurrentUserAccessRight(caseData.currentUserAccessRight);
-  const canManageAuthorizedMembers = currentAccessRight.canManage && isFeatureEnable('CONTAINERS_AUTHORIZED_MEMBERS');
   return (
     <div style={{ paddingRight }} data-testid="incident-details-page">
-      <Breadcrumbs variant="object" elements={[
+      <Breadcrumbs elements={[
         { label: t_i18n('Cases') },
         { label: t_i18n('Incident responses'), link: '/dashboard/cases/incidents' },
         { label: caseData.name, current: true },
@@ -142,16 +119,14 @@ const RootCaseIncidentComponent = ({ queryRef, caseId }) => {
       <ContainerHeader
         container={caseData}
         PopoverComponent={<CaseIncidentPopover id={caseData.id} />}
-        EditComponent={
+        EditComponent={isFABReplaced && (
           <Security needs={[KNOWLEDGE_KNUPDATE]} hasAccess={currentAccessRight.canEdit}>
             <CaseIncidentEdition caseId={caseData.id} />
           </Security>
-        }
+        )}
         enableQuickSubscription={true}
         enableAskAi={true}
         redirectToContent={true}
-        enableManageAuthorizedMembers={canManageAuthorizedMembers}
-        authorizedMembersMutation={caseIncidentAuthorizedMembersMutation}
       />
       <Box
         sx={{

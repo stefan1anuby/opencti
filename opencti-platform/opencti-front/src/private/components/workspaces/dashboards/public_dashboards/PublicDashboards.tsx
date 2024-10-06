@@ -1,7 +1,4 @@
 import React from 'react';
-import ToggleButton from '@mui/material/ToggleButton';
-import Tooltip from '@mui/material/Tooltip';
-import { ViewListOutlined } from '@mui/icons-material';
 import { graphql } from 'react-relay';
 import PublicDashboardLineActions from './PublicDashboardLineActions';
 import PublicDashboardCreation from './PublicDashboardCreation';
@@ -66,6 +63,7 @@ export const publicDashboardsFragment = graphql`
     ) @connection(key: "Pagination_publicDashboards") {
       edges {
         node {
+          id
           ...PublicDashboards_PublicDashboard
         }
       }
@@ -152,9 +150,6 @@ const PublicDashboards = () => {
       isSortable: false,
       render: ({ dashboard }, h) => textInTooltip(dashboard.name, h),
     },
-    allowed_markings: {
-      id: 'allowed_markings',
-    },
     enabled: {
       id: 'enabled',
       percentWidth: 15,
@@ -174,12 +169,14 @@ const PublicDashboards = () => {
       isSortable: true,
       render: ({ owner }, h) => textInTooltip(owner.name, h),
     },
+    allowed_markings: {
+      id: 'allowed_markings',
+    },
   };
 
   return (
     <>
       <Breadcrumbs
-        variant="list"
         elements={[
           { label: t_i18n('Dashboards') },
           { label: t_i18n('Public dashboards'), current: true },
@@ -206,13 +203,6 @@ const PublicDashboards = () => {
           lineFragment={publicDashboardFragment}
           entityTypes={['PublicDashboard']}
           searchContextFinal={{ entityTypes: ['PublicDashboard'] }}
-          additionalHeaderButtons={[
-            <ToggleButton key="cards" value="lines" aria-label="lines">
-              <Tooltip title={t_i18n('Lines view')}>
-                <ViewListOutlined color="primary" fontSize="small"/>
-              </Tooltip>
-            </ToggleButton>,
-          ]}
           actions={(row) => (
             <PublicDashboardLineActions
               publicDashboard={row}

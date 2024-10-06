@@ -83,6 +83,7 @@ export const coursesOfActionLinesFragment = graphql`
     ) @connection(key: "Pagination_coursesOfAction") {
       edges {
         node {
+          id
           name
           ...CoursesOfActionLine_node
         }
@@ -147,7 +148,7 @@ const CoursesOfAction = () => {
 
   return (
     <>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Techniques') }, { label: t_i18n('Courses of action'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Techniques') }, { label: t_i18n('Courses of action'), current: true }]} />
       {queryRef && (
         <DataTable
           dataColumns={dataColumns}

@@ -2,8 +2,10 @@ import React, { FunctionComponent } from 'react';
 import MUIBreadcrumbs from '@mui/material/Breadcrumbs';
 import { Link } from 'react-router-dom';
 import Typography from '@mui/material/Typography';
-import makeStyles from '@mui/styles/makeStyles';
+import { useTheme } from '@mui/styles';
+import DangerZoneChip from '@components/common/dangerZone/DangerZoneChip';
 import { truncate } from '../utils/String';
+import type { Theme } from './Theme';
 
 interface element {
   label: string;
@@ -12,40 +14,23 @@ interface element {
 }
 
 interface BreadcrumbsProps {
-  variant: 'standard' | 'list' | 'object',
-  elements: element[],
+  elements: element[]
+  isSensitive?: boolean
 }
 
-// Deprecated - https://mui.com/system/styles/basics/
-// Do not use it for new code.
-const useStyles = makeStyles(() => ({
-  breadcrumbsList: {
-    marginTop: -5,
-    marginBottom: 25,
-  },
-  breadcrumbsObject: {
-    marginTop: -5,
-    marginBottom: 15,
-  },
-  breadcrumbsStandard: {
-    marginTop: -5,
-  },
-}));
-
-const Breadcrumbs: FunctionComponent<BreadcrumbsProps> = ({ elements, variant }) => {
-  const classes = useStyles();
-  let className = classes.breadcrumbsStandard;
-  if (variant === 'list') {
-    className = classes.breadcrumbsList;
-  } else if (variant === 'object') {
-    className = classes.breadcrumbsObject;
-  }
+const Breadcrumbs: FunctionComponent<BreadcrumbsProps> = ({ elements, isSensitive = false }) => {
+  const theme = useTheme<Theme>();
   return (
-    <MUIBreadcrumbs classes={{ root: className }}>
+    <MUIBreadcrumbs style={{ marginBottom: theme.spacing(2) }}>
       {elements.map((element) => {
         if (element.current) {
           return (
-            <Typography key={element.label} color="text.primary">{truncate(element.label, 30, false)}</Typography>
+            <span key={element.label} style={{ display: 'flex', alignItems: 'center' }}>
+              <Typography color={'text.primary'}>
+                {truncate(element.label, 30, false)}
+              </Typography>
+              {isSensitive && <DangerZoneChip />}
+            </span>
           );
         }
         if (!element.link) {

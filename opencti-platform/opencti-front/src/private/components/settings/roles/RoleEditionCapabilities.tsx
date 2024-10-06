@@ -9,12 +9,16 @@ import List from '@mui/material/List';
 import { PreloadedQuery } from 'react-relay/relay-hooks/EntryPointTypes';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import LocalPoliceOutlined from '@mui/icons-material/LocalPoliceOutlined';
+import { useTheme } from '@mui/styles';
+import DangerZoneChip from '@components/common/dangerZone/DangerZoneChip';
 import Loader, { LoaderVariant } from '../../../../components/Loader';
 import { useFormatter } from '../../../../components/i18n';
 import { RoleEditionCapabilitiesLinesSearchQuery } from './__generated__/RoleEditionCapabilitiesLinesSearchQuery.graphql';
 import { RoleEditionCapabilities_role$data } from './__generated__/RoleEditionCapabilities_role.graphql';
 import useApiMutation from '../../../../utils/hooks/useApiMutation';
 import { SETTINGS } from '../../../../utils/hooks/useGranted';
+import useSensitiveModifications from '../../../../utils/hooks/useSensitiveModifications';
+import type { Theme } from '../../../../components/Theme';
 
 const roleEditionAddCapability = graphql`
   mutation RoleEditionCapabilitiesAddCapabilityMutation(
@@ -45,6 +49,19 @@ const roleEditionRemoveCapability = graphql`
   }
 `;
 
+const roleEditionPatchAllowSensitiveConf = graphql`
+  mutation RoleEditionCapabilitiesPatchAllowSensitiveChangesMutation(
+    $id: ID!
+    $input: [EditInput]!
+  ) {
+    roleEdit(id: $id) {
+      fieldPatch(input: $input) {
+        can_manage_sensitive_config
+      }
+    }
+  }
+`;
+
 export const roleEditionCapabilitiesLinesSearch = graphql`
   query RoleEditionCapabilitiesLinesSearchQuery {
     capabilities(first: 500) {
@@ -66,6 +83,8 @@ interface RoleEditionCapabilitiesComponentProps {
 
 const RoleEditionCapabilitiesComponent: FunctionComponent<RoleEditionCapabilitiesComponentProps> = ({ role, queryRef }) => {
   const { t_i18n } = useFormatter();
+  const theme = useTheme<Theme>();
+
   const { capabilities } = usePreloadedQuery<RoleEditionCapabilitiesLinesSearchQuery>(
     roleEditionCapabilitiesLinesSearch,
     queryRef,
@@ -75,6 +94,7 @@ const RoleEditionCapabilitiesComponent: FunctionComponent<RoleEditionCapabilitie
   })) as { name: string }[];
   const [commitAddCapability] = useApiMutation(roleEditionAddCapability);
   const [commitRemoveCapability] = useApiMutation(roleEditionRemoveCapability);
+  const [commitPatchAllowSensitiveConf] = useApiMutation(roleEditionPatchAllowSensitiveConf);
   const handleToggle = (
     capabilityId: string,
     event: React.ChangeEvent<HTMLInputElement>,
@@ -101,9 +121,54 @@ const RoleEditionCapabilitiesComponent: FunctionComponent<RoleEditionCapabilitie
     }
   };
 
+  const handleSensitiveToggle = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const roleId = role.id;
+    commitPatchAllowSensitiveConf({
+      variables: {
+        id: roleId,
+        input: {
+          key: 'can_manage_sensitive_config',
+          value: event.target.checked,
+        },
+      },
+    });
+    // And invalid me ?? or invalidSession
+  };
+
+  const { isSensitiveModificationEnabled } = useSensitiveModifications();
+
   if (capabilities && capabilities.edges) {
     return (
       <List dense={true}>
+        {isSensitiveModificationEnabled && (
+          <ListItem
+            key="sensitive"
+            divider={true}
+            style={{ paddingLeft: 0 }}
+          >
+            <ListItemIcon style={{ minWidth: 32 }}>
+              <LocalPoliceOutlined fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <>
+                  {t_i18n('Allow modification of sensitive configuration')}
+                  <DangerZoneChip />
+                </>
+              }
+            />
+            <ListItemSecondaryAction>
+              <Checkbox
+                onChange={(event) => handleSensitiveToggle(event)}
+                checked={role.can_manage_sensitive_config !== false} // beware: undefined value means access is granted
+                style={{ color: theme.palette.dangerZone.main }}
+                disabled={false}
+              />
+            </ListItemSecondaryAction>
+          </ListItem>
+        )}
         {capabilities.edges.map((edge) => {
           const capability = edge?.node;
           if (capability) {
@@ -155,6 +220,7 @@ const RoleEditionCapabilities = createFragmentContainer(
     role: graphql`
       fragment RoleEditionCapabilities_role on Role {
         id
+        can_manage_sensitive_config
         capabilities {
           id
           name

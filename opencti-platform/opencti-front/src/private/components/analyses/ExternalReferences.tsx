@@ -84,6 +84,7 @@ const externalReferencesLinesFragment = graphql`
     ) @connection(key: "Pagination_externalReferences") {
       edges {
         node {
+          id
           ...ExternalReferencesLine_node
         }
       }
@@ -149,7 +150,7 @@ const ExternalReferences: FunctionComponent<ExternalReferencesProps> = () => {
   } as UsePreloadedPaginationFragment<ExternalReferencesLinesPaginationQuery>;
   return (
     <>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Analyses') }, { label: t_i18n('External references'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Analyses') }, { label: t_i18n('External references'), current: true }]} />
       {queryRef && (
         <DataTable
           dataColumns={dataColumns}

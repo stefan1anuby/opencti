@@ -50,7 +50,7 @@ const IngestionRss = () => {
       isSortable: true,
     },
     ingestion_running: {
-      label: 'Running',
+      label: 'Status',
       width: '20%',
       isSortable: false,
     },
@@ -72,7 +72,7 @@ const IngestionRss = () => {
   }
   return (
     <div className={classes.container}>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Data') }, { label: t_i18n('Ingestion') }, { label: t_i18n('RSS feeds'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Data') }, { label: t_i18n('Ingestion') }, { label: t_i18n('RSS feeds'), current: true }]} />
       <IngestionMenu/>
       <ListLines
         helpers={storageHelpers}

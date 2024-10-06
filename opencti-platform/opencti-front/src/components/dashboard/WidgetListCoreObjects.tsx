@@ -1,20 +1,25 @@
-import React, { forwardRef, MutableRefObject } from 'react';
-import { v4 as uuid } from 'uuid';
+import React from 'react';
 import DataTableWithoutFragment from '../dataGrid/DataTableWithoutFragment';
-import { DataTableVariant } from '../dataGrid/dataTableTypes';
+import { DataTableProps, DataTableVariant } from '../dataGrid/dataTableTypes';
 
 interface WidgetListCoreObjectsProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[]
   dateAttribute: string
   publicWidget?: boolean
+  rootRef: DataTableProps['rootRef']
+  widgetId: string
+  pageSize: number
 }
 
-const WidgetListCoreObjects = forwardRef<HTMLDivElement, WidgetListCoreObjectsProps>(({
+const WidgetListCoreObjects = ({
   data,
   dateAttribute,
   publicWidget = false,
-}, ref) => (
+  rootRef,
+  widgetId,
+  pageSize,
+}: WidgetListCoreObjectsProps) => (
   <DataTableWithoutFragment
     dataColumns={{
       entity_type: { percentWidth: 10 },
@@ -30,14 +35,15 @@ const WidgetListCoreObjects = forwardRef<HTMLDivElement, WidgetListCoreObjectsPr
       x_opencti_workflow_id: { percentWidth: 15 },
       objectMarking: { percentWidth: 15 },
     }}
-    storageKey={uuid()}
+    storageKey={widgetId}
     data={data.map(({ node }) => node)}
     globalCount={data.length}
     variant={DataTableVariant.widget}
+    pageSize={pageSize.toString()}
     disableNavigation={publicWidget}
-    rootRef={(ref as MutableRefObject<HTMLDivElement>)?.current}
+    rootRef={rootRef}
   />
-));
+);
 
 WidgetListCoreObjects.displayName = 'WidgetListCoreObjects';
 

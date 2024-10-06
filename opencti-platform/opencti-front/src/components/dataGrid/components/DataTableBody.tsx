@@ -9,6 +9,7 @@ import { ColumnSizeVars, DataTableBodyProps, DataTableLineProps, DataTableVarian
 import DataTableLine, { DataTableLinesDummy } from './DataTableLine';
 import { SELECT_COLUMN_SIZE } from './DataTableHeader';
 import { useDataTableToggle } from '../dataTableHooks';
+import { throttle } from '../../../utils/utils';
 
 // Deprecated - https://mui.com/system/styles/basics/
 // Do not use it for new code.
@@ -20,7 +21,7 @@ const useStyles = makeStyles<MuiTheme, { columnSizeVars: ColumnSizeVars }>(() =>
   }),
   linesContainer: {
     height: 'calc(var(--table-height, 100%) * 1px - 50px)',
-    width: 'calc(var(--col-table-size, 100%) * 1px + 10px)', // 10px is approx. the scrollbar size to prevent alignment issues
+    width: 'calc(var(--col-table-size, 100%) * 1px)', // 10px is approx. the scrollbar size to prevent alignment issues
     overflowY: 'auto',
     overflowX: 'hidden',
   },
@@ -38,6 +39,9 @@ const DataTableBody = ({
   dataQueryArgs,
   pageStart,
   pageSize,
+  setReset,
+  reset = false,
+  hideHeaders = false,
 }: DataTableBodyProps) => {
   const {
     rootRef,
@@ -47,6 +51,7 @@ const DataTableBody = ({
     variant,
     useDataTable,
     resolvePath,
+    actions,
   } = useDataTableContext();
 
   const { data: queryData, isLoading, loadMore, hasMore } = useDataTable(dataQueryArgs);
@@ -66,6 +71,9 @@ const DataTableBody = ({
 
   // TABLE HANDLING
   const [resize, setResize] = useState(false);
+  const resizeObserver = useRef(new ResizeObserver(throttle(() => {
+    setResize(true);
+  }, 200)));
   const [computeState, setComputeState] = useState<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -74,7 +82,7 @@ const DataTableBody = ({
   const startsWithSelect = columns.at(0)?.id === 'select';
   const endsWithNavigate = columns.at(-1)?.id === 'navigate';
 
-  let storedSize = SELECT_COLUMN_SIZE;
+  let storedSize = (endsWithNavigate || actions) ? SELECT_COLUMN_SIZE : 0;
   if (startsWithSelect) {
     storedSize += SELECT_COLUMN_SIZE;
   }
@@ -94,14 +102,14 @@ const DataTableBody = ({
     }
     // From there, currentRefContainer is not null
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
-    const clientWidth = currentRefContainer!.clientWidth - storedSize - 12; // Scrollbar size to prevent alignment issues
+    const clientWidth = currentRefContainer!.clientWidth - storedSize - 10; // Scrollbar size to prevent alignment issues
     for (let i = startsWithSelect ? 1 : 0; i < columns.length - (endsWithNavigate ? 1 : 0); i += 1) {
-      const column = { ...columns[i], ...localStorageColumns[columns[i].id] };
+      const column = reset ? columns[i] : { ...columns[i], ...localStorageColumns[columns[i].id] };
       const shouldCompute = (!column.size || resize || !localStorageColumns[columns[i].id]?.size) && (column.percentWidth && Boolean(computeState));
       let size = column.size ?? 200;
 
       // We must compute px size for columns
-      if (shouldCompute) {
+      if (shouldCompute || reset) {
         size = column.percentWidth * (clientWidth / 100);
         column.size = size;
       }
@@ -125,14 +133,21 @@ const DataTableBody = ({
     }
     const columnsSize = Object.values(localColumns).reduce((acc, { size }) => acc + size, 0);
     const tableSize = columnsSize + storedSize;
+
+    // Dirty fix for tables with mismatch size
+    // Will be remove when rework by Landry
+    if (tableSize < clientWidth) {
+      setResize(true);
+    }
+
     if (columnsSize > clientWidth) {
       currentRefContainer!.style.overflowX = 'auto';
       currentRefContainer!.style.overflowY = 'hidden';
     } else {
       currentRefContainer!.style.overflow = 'hidden';
     }
-    colSizes['--header-table-size'] = tableSize; // 50 is almost the scrollbar size
-    colSizes['--col-table-size'] = tableSize;
+    colSizes['--header-table-size'] = tableSize + 10;
+    colSizes['--col-table-size'] = tableSize + 10;
     if (variant === DataTableVariant.widget) {
       if (!rootRef) {
         throw Error('Invalid configuration for widget list');
@@ -142,12 +157,13 @@ const DataTableBody = ({
       colSizes['--table-height'] = rootRef.offsetHeight - 42; // SIZE OF CONTAINER - Nb Elements - Line Size
     } else {
       const rootSize = (document.getElementById('root')?.offsetHeight ?? 0) - settingsMessagesBannerHeight;
-      const filterRemoval = (hasFilterComponent && document.getElementById('filter-container')?.children.length) ? 260 : 220;
+      const filterRemoval = (hasFilterComponent && document.getElementById('filter-container')?.children.length) ? 230 : 200;
       const tabsRemoval = document.getElementById('tabs-container')?.children.length ? 50 : 0;
       colSizes['--table-height'] = rootSize - filterRemoval - tabsRemoval;
     }
     /* eslint-enable @typescript-eslint/no-non-null-assertion */
 
+    setReset(false);
     return colSizes;
   }, [
     resize,
@@ -202,27 +218,27 @@ const DataTableBody = ({
       }
     }, 200);
 
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('storage', handleStorage);
+    if (rootRef) resizeObserver.current.observe(rootRef);
     let observer: MutationObserver | undefined;
-    if (hasFilterComponent) {
-      window.addEventListener('resize', handleResize);
-      window.addEventListener('storage', handleStorage);
+    const elementToObserve = document.getElementById('filter-container');
+    if (elementToObserve) {
       observer = new MutationObserver(() => setResize(true));
-      const elementToObserve = document.getElementById('filter-container');
-      if (elementToObserve) {
-        observer.observe(elementToObserve, { childList: true });
-      }
+      observer.observe(elementToObserve, { childList: true });
     }
 
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('storage', handleStorage);
+      resizeObserver.current.disconnect();
       if (hasFilterComponent && observer) {
         observer.disconnect();
       }
     };
   }, []);
   const effectiveColumns = useMemo(() => columns
-    .map((col) => ({ ...col, size: localStorageColumns[col.id]?.size })), [columns, localStorageColumns]);
+    .map((col) => ({ ...col, size: localStorageColumns[col.id]?.size })), [columns, localStorageColumns, reset]);
 
   return (
     <div
@@ -230,7 +246,7 @@ const DataTableBody = ({
       className={classes.tableContainer}
       style={{ ...columnSizeVars }}
     >
-      {variant !== DataTableVariant.widget && (
+      {(variant !== DataTableVariant.widget && !hideHeaders) && (
         <DataTableHeaders
           containerRef={containerRef}
           effectiveColumns={effectiveColumns}
@@ -259,7 +275,7 @@ const DataTableBody = ({
                 />
               );
             })}
-            {isLoading && <DataTableLinesDummy number={pageSize} />}
+            {isLoading && <DataTableLinesDummy number={Math.max(pageSize, 25)} />}
           </>
         )}
       </div>

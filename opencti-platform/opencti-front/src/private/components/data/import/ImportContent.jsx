@@ -8,12 +8,10 @@ import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid';
-import { Link } from 'react-router-dom';
-import { Add, ArrowDropDown, ArrowDropUp, Extension } from '@mui/icons-material';
+import { Add, ArrowDropDown, ArrowDropUp } from '@mui/icons-material';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import ListItem from '@mui/material/ListItem';
-import Tooltip from '@mui/material/Tooltip';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
 import { Field, Form, Formik } from 'formik';
 import Dialog from '@mui/material/Dialog';
@@ -21,7 +19,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import MenuItem from '@mui/material/MenuItem';
 import DialogActions from '@mui/material/DialogActions';
-import { ListItemButton } from '@mui/material';
 import Button from '@mui/material/Button';
 import * as Yup from 'yup';
 import Fab from '@mui/material/Fab';
@@ -38,7 +35,6 @@ import WorkbenchFileLine from '../../common/files/workbench/WorkbenchFileLine';
 import FreeTextUploader from '../../common/files/FreeTextUploader';
 import WorkbenchFileCreator from '../../common/files/workbench/WorkbenchFileCreator';
 import ManageImportConnectorMessage from './ManageImportConnectorMessage';
-import { truncate } from '../../../../utils/String';
 import { fieldSpacingContainerStyle } from '../../../../utils/field';
 import withRouter from '../../../../utils/compat_router/withRouter';
 import Breadcrumbs from '../../../../components/Breadcrumbs';
@@ -90,7 +86,6 @@ const styles = (theme) => ({
   createButton: {
     position: 'fixed',
     bottom: 30,
-    right: 230,
   },
 });
 
@@ -332,9 +327,9 @@ class ImportContentComponent extends Component {
       t,
       importFiles,
       pendingFiles,
-      nsdt,
       connectorsImport,
       relay,
+      isNewImportScreensEnabled,
     } = this.props;
     const { edges: importFilesEdges } = importFiles;
     const { edges: pendingFilesEdges } = pendingFiles;
@@ -348,16 +343,16 @@ class ImportContentComponent extends Component {
     const invalidCsvMapper = this.state.selectedConnector?.name === 'ImportCsv'
       && this.state.selectedConnector?.configurations?.length === 0;
     return (
-      <div style={{ paddingRight: 200 }}>
-        <Breadcrumbs variant="list" elements={[{ label: t('Data') }, { label: t('Import'), current: true }]} />
-        <ImportMenu />
+      <div style={{ paddingRight: isNewImportScreensEnabled ? 200 : 0 }}>
+        <Breadcrumbs elements={[{ label: t('Data') }, { label: t('Import'), current: true }]} />
+        {isNewImportScreensEnabled && <ImportMenu/>}
         <Grid
           container={true}
           spacing={3}
           classes={{ container: classes.gridContainer }}
           style={{ marginTop: 0 }}
         >
-          <Grid item xs={8} style={{ paddingTop: 0 }}>
+          <Grid item xs={12} style={{ paddingTop: 0 }}>
             <div style={{ height: '100%' }} className="break">
               <Typography
                 variant="h4"
@@ -408,74 +403,6 @@ class ImportContentComponent extends Component {
                 )}
               </Paper>
             </div>
-          </Grid>
-          <Grid item xs={4} style={{ paddingTop: 0 }}>
-            <Typography variant="h4" gutterBottom={true}>
-              {t('Enabled import connectors')}
-            </Typography>
-            <Paper
-              classes={{ root: classes.paper }}
-              variant="outlined"
-              style={{ marginTop: 12 }}
-              className={'paper-for-grid'}
-            >
-              {connectors.length ? (
-                <List>
-                  {connectors.map((connector) => {
-                    const connectorScope = connector.connector_scope.join(',');
-                    return (
-                      <ListItemButton
-                        component={Link}
-                        to={`/dashboard/data/ingestion/connectors/${connector.id}`}
-                        key={connector.id}
-                        dense={true}
-                        divider={true}
-                        classes={{ root: classes.item }}
-                      >
-                        <Tooltip
-                          title={
-                            connector.active
-                              ? t('This connector is active')
-                              : t('This connector is disconnected')
-                          }
-                        >
-                          <ListItemIcon
-                            style={{
-                              color: connector.active ? '#4caf50' : '#f44336',
-                            }}
-                          >
-                            <Extension/>
-                          </ListItemIcon>
-                        </Tooltip>
-                        <Tooltip title={connectorScope}>
-                          <ListItemText
-                            primary={connector.name}
-                            secondary={truncate(connectorScope, 30)}
-                          />
-                        </Tooltip>
-                        {connector.updated_at && (<ListItemSecondaryAction>
-                          <ListItemText primary={nsdt(connector.updated_at)}/>
-                        </ListItemSecondaryAction>)}
-                      </ListItemButton>
-                    );
-                  })}
-                </List>
-              ) : (
-                <div
-                  style={{ display: 'table', height: '100%', width: '100%' }}
-                >
-                  <span
-                    style={{
-                      display: 'table-cell',
-                      verticalAlign: 'middle',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {t('No enrichment connectors on this platform')}
-                  </span>
-                </div>
-              )}
-            </Paper>
           </Grid>
           <Grid item xs={12}>
             <div style={{ height: '100%' }} className="break">
@@ -705,6 +632,7 @@ class ImportContentComponent extends Component {
           color="primary"
           aria-label="Add"
           className={classes.createButton}
+          style={{ right: isNewImportScreensEnabled ? 230 : 30 }}
         >
           <Add />
         </Fab>

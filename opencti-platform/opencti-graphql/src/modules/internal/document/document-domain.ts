@@ -10,10 +10,10 @@ import type { AuthContext, AuthUser } from '../../../types/user';
 import { type DomainFindById } from '../../../domain/domainTypes';
 import type { BasicStoreEntityDocument } from './document-types';
 import type { BasicStoreCommon, BasicStoreObject } from '../../../types/store';
-import { type File, FilterMode, FilterOperator, OrderingMode } from '../../../generated/graphql';
+import { type File, FilterMode, FilterOperator, OrderingMode, State } from '../../../generated/graphql';
 import { loadExportWorksAsProgressFiles } from '../../../domain/work';
 import { elSearchFiles } from '../../../database/file-search';
-import { SYSTEM_USER } from '../../../utils/access';
+import { isUserHasCapability, SETTINGS_SUPPORT, SYSTEM_USER } from '../../../utils/access';
 import { FROM_START_STR } from '../../../utils/format';
 import { buildContextDataForFile, publishUserAction } from '../../../listener/UserActionListener';
 import type { UserAction } from '../../../listener/UserActionListener';
@@ -21,6 +21,12 @@ import { ForbiddenAccess } from '../../../config/errors';
 import { RELATION_OBJECT_MARKING } from '../../../schema/stixRefRelationship';
 import { buildRefRelationKey } from '../../../schema/general';
 
+export const SUPPORT_STORAGE_PATH = 'support';
+export const IMPORT_STORAGE_PATH = 'import';
+export const EXPORT_STORAGE_PATH = 'export';
+
+export const DELETABLE_FILE_STATUSES = ['complete', 'timeout'];
+export const UPLOAD_STATUS_VALUES = Object.values(State);
 export const getIndexFromDate = async (context: AuthContext) => {
   const searchOptions = {
     first: 1,
@@ -47,9 +53,14 @@ export const buildFileDataForIndexing = (file: File) => {
   };
 };
 
-export const indexFileToDocument = async (file: any) => {
+export const indexFileToDocument = async (context: AuthContext, file: any) => {
   const data = buildFileDataForIndexing(file);
-  await elIndex(INDEX_INTERNAL_OBJECTS, data);
+  const internalFile = await storeLoadById(context, SYSTEM_USER, data.internal_id, ENTITY_TYPE_INTERNAL_FILE);
+  if (internalFile) {
+    // update existing internalFile (if file has been saved in another index)
+    return elIndex(internalFile._index, data);
+  }
+  return elIndex(INDEX_INTERNAL_OBJECTS, data);
 };
 
 export const deleteDocumentIndex = async (context: AuthContext, user: AuthUser, id: string) => {
@@ -150,6 +161,12 @@ export const allFilesMimeTypeDistribution = async (context: AuthContext, user: A
 };
 
 export const checkFileAccess = async (context: AuthContext, user: AuthUser, scope: string, { entity_id, filename, id }: { entity_id?: string, filename: string, id: string }) => {
+  // Checks for support/* files
+  if (id && (id.startsWith(SUPPORT_STORAGE_PATH) && !isUserHasCapability(user, SETTINGS_SUPPORT))) {
+    throw ForbiddenAccess('Access to this file is restricted', { id: entity_id, file: id });
+  }
+
+  // Checks for other files: import/*, export/*
   if (isEmptyField(entity_id)) {
     return true;
   }

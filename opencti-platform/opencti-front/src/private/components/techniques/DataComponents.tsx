@@ -82,6 +82,7 @@ const dataComponentsLinesFragment = graphql`
     ) @connection(key: "Pagination_dataComponents") {
       edges {
         node {
+          id
           ...DataComponentsLine_node
         }
       }
@@ -143,7 +144,7 @@ const DataComponents: FunctionComponent = () => {
 
   return (
     <>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Techniques') }, { label: t_i18n('Data components'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Techniques') }, { label: t_i18n('Data components'), current: true }]} />
       {queryRef && (
         <DataTable
           dataColumns={dataColumns}

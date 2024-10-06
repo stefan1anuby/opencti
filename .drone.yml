@@ -83,7 +83,7 @@ steps:
 
 
   - name: frontend-e2e-tests
-    image: node:20.16.0
+    image: node:20.17.0
     volumes:
     - name: cache-node-frontend-e2e
       path: /drone/src/opencti-platform/opencti-front/node_modules
@@ -103,7 +103,7 @@ steps:
       - frontend-tests
 
   - name: upload-build-artefact
-    image: node:20.16.0
+    image: node:20.17.0
     failure: ignore
     when:
       status:
@@ -132,7 +132,7 @@ steps:
       - frontend-e2e-tests
 
   - name: frontend-verify-translation
-    image: node:20.16.0
+    image: node:20.17.0
     commands:
       - cd opencti-platform/opencti-front
       - node script/verify-translation.js
@@ -147,6 +147,7 @@ steps:
     when:
       branch:
         - master
+        - release/*
       event:
         exclude:
           - pull_request
@@ -189,7 +190,7 @@ services:
   - name: redis
     image: redis:7.4.0
   - name: elastic
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.2
     environment:
       discovery.type: single-node
       xpack.security.enabled: false
@@ -354,7 +355,7 @@ services:
       path: /tmp/e2e-start-platform/node_modules
     environment:
       APP__PORT: 4500
-      APP__DISABLED_DEV_FEATURES: '["4352_BULK_RELATIONS"]'
+      APP__DISABLED_DEV_FEATURES: '[]'
       APP__ADMIN__PASSWORD: admin
       APP__ADMIN__TOKEN: bfa014e0-e02e-4aa6-a42b-603b19dcf159
       APP__APP_LOG__EXTENDED_ERROR_MESSAGE: true

@@ -136,10 +136,10 @@ const IntrusionSets = () => {
       resource_level: {},
       primary_motivation: {},
       secondary_motivations: {},
-      creator: {},
+      creator: { percentWidth: 15 },
+      objectLabel: {},
       modified: {},
       objectMarking: { percentWidth: 10 },
-      objectLabel: {},
     };
 
     const preloadedPaginationProps = {
@@ -168,9 +168,9 @@ const IntrusionSets = () => {
                   <ViewModuleOutlined fontSize="small" color="primary" />
                 </Tooltip>
               </ToggleButton>),
-              (<ToggleButton key="cards" value="lines" aria-label="lines">
+              (<ToggleButton key="lines" value="lines" aria-label="lines">
                 <Tooltip title={t_i18n('Lines view')}>
-                  <ViewListOutlined color="primary" fontSize="small" />
+                  <ViewListOutlined color="secondary" fontSize="small" />
                 </Tooltip>
               </ToggleButton>),
             ]}
@@ -187,7 +187,7 @@ const IntrusionSets = () => {
 
   return (
     <>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Threats') }, { label: t_i18n('Intrusion sets'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Threats') }, { label: t_i18n('Intrusion sets'), current: true }]} />
       {viewStorage.view !== 'lines' ? renderCards() : renderList()}
       {!isFABReplaced && (
         <Security needs={[KNOWLEDGE_KNUPDATE]}>

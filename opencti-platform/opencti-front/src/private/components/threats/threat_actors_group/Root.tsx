@@ -8,6 +8,7 @@ import useQueryLoading from 'src/utils/hooks/useQueryLoading';
 import { RootThreatActorGroupQuery } from '@components/threats/threat_actors_group/__generated__/RootThreatActorGroupQuery.graphql';
 import { GraphQLSubscriptionConfig } from 'relay-runtime';
 import { RootThreatActorsGroupSubscription } from '@components/threats/threat_actors_group/__generated__/RootThreatActorsGroupSubscription.graphql';
+import useForceUpdate from '@components/common/bulk/useForceUpdate';
 import StixCoreObjectContentRoot from '../../common/stix_core_objects/StixCoreObjectContentRoot';
 import StixCoreObjectSimulationResult from '../../common/stix_core_objects/StixCoreObjectSimulationResult';
 import ThreatActorGroup from './ThreatActorGroup';
@@ -56,7 +57,7 @@ const ThreatActorGroupQuery = graphql`
       stixCoreObjectsDistribution(field: "entity_type", operation: count) {
         label
         value
-      }  
+      }
       ...ThreatActorGroup_ThreatActorGroup
       ...ThreatActorGroupKnowledge_ThreatActorGroup
       ...FileImportViewer_entity
@@ -98,6 +99,8 @@ const RootThreatActorGroup = ({ queryRef, threatActorGroupId }: RootThreatActorG
     connectorsForImport,
   } = usePreloadedQuery<RootThreatActorGroupQuery>(ThreatActorGroupQuery, queryRef);
 
+  const { forceUpdate } = useForceUpdate();
+
   const isOverview = location.pathname === `/dashboard/threats/threat_actors_group/${threatActorGroupId}`;
   const paddingRight = getPaddingRight(location.pathname, threatActorGroupId, '/dashboard/threats/threat_actors_group');
   const link = `/dashboard/threats/threat_actors_group/${threatActorGroupId}/knowledge`;
@@ -134,11 +137,12 @@ const RootThreatActorGroup = ({ queryRef, threatActorGroupId }: RootThreatActorG
             />
           </Routes>
           <div style={{ paddingRight }}>
-            <Breadcrumbs variant="object" elements={[
-              { label: t_i18n('Threats') },
-              { label: t_i18n('Threat actors (group)'), link: '/dashboard/threats/threat_actors_group' },
-              { label: threatActorGroup.name, current: true },
-            ]}
+            <Breadcrumbs
+              elements={[
+                { label: t_i18n('Threats') },
+                { label: t_i18n('Threat actors (group)'), link: '/dashboard/threats/threat_actors_group' },
+                { label: threatActorGroup.name, current: true },
+              ]}
             />
             <StixDomainObjectHeader
               entityType="Threat-Actor-Group"
@@ -220,7 +224,11 @@ const RootThreatActorGroup = ({ queryRef, threatActorGroupId }: RootThreatActorG
               />
               <Route
                 path="/knowledge/*"
-                element={<ThreatActorGroupKnowledge threatActorGroup={threatActorGroup} />}
+                element={
+                  <div key={forceUpdate}>
+                    <ThreatActorGroupKnowledge threatActorGroup={threatActorGroup} />
+                  </div>
+                }
               />
               <Route
                 path="/content/*"

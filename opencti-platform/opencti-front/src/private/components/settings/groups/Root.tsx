@@ -4,6 +4,7 @@ import React, { FunctionComponent, useMemo } from 'react';
 import { Route, Routes, useParams } from 'react-router-dom';
 import { graphql, PreloadedQuery, usePreloadedQuery, useSubscription } from 'react-relay';
 import { GraphQLSubscriptionConfig } from 'relay-runtime';
+import AccessesMenu from '@components/settings/AccessesMenu';
 import ErrorNotFound from '../../../../components/ErrorNotFound';
 import useQueryLoading from '../../../../utils/hooks/useQueryLoading';
 import Loader, { LoaderVariant } from '../../../../components/Loader';
@@ -12,6 +13,9 @@ import { RootGroupsSubscription } from './__generated__/RootGroupsSubscription.g
 import { RootGroupQuery } from './__generated__/RootGroupQuery.graphql';
 import Security from '../../../../utils/Security';
 import { SETTINGS_SETACCESSES } from '../../../../utils/hooks/useGranted';
+import Breadcrumbs from '../../../../components/Breadcrumbs';
+import { useFormatter } from '../../../../components/i18n';
+import useSensitiveModifications from '../../../../utils/hooks/useSensitiveModifications';
 
 const subscription = graphql`
     subscription RootGroupsSubscription($id: ID!) {
@@ -30,6 +34,7 @@ const groupQuery = graphql`
     group(id: $id) {
       id
       name
+      standard_id
       ...Group_group
       @arguments(
         rolesOrderBy: $rolesOrderBy
@@ -55,18 +60,33 @@ const RootGroupComponent: FunctionComponent<RootGroupComponentProps> = ({ queryR
   useSubscription(subConfig);
   const data = usePreloadedQuery(groupQuery, queryRef);
   const { group } = data;
+  const { t_i18n } = useFormatter();
+
+  const { isSensitive } = useSensitiveModifications(group?.standard_id);
 
   return (
     <Security needs={[SETTINGS_SETACCESSES]}>
       {group ? (
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <Group groupData={group} />
-            }
+        <>
+          <AccessesMenu/>
+          <Breadcrumbs
+            isSensitive={isSensitive}
+            elements={[
+              { label: t_i18n('Settings') },
+              { label: t_i18n('Security') },
+              { label: t_i18n('Groups'), link: '/dashboard/settings/accesses/groups' },
+              { label: group.name, current: true },
+            ]}
           />
-        </Routes>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Group groupData={group}/>
+            }
+            />
+          </Routes>
+        </>
       ) : (
         <ErrorNotFound />
       )}

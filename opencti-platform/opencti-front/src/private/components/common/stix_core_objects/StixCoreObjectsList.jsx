@@ -209,6 +209,7 @@ const StixCoreObjectsList = ({
   startDate,
   endDate,
   dataSelection,
+  widgetId,
   parameters = {},
 }) => {
   const { t_i18n } = useFormatter();
@@ -219,7 +220,7 @@ const StixCoreObjectsList = ({
     : 'created_at';
   const { filters } = buildFiltersAndOptionsForWidgets(selection.filters, { startDate, endDate, dateAttribute });
 
-  const rootRef = useRef();
+  const rootRef = useRef(null);
 
   return (
     <WidgetContainer
@@ -244,7 +245,15 @@ const StixCoreObjectsList = ({
             && props.stixCoreObjects.edges.length > 0
           ) {
             const data = props.stixCoreObjects.edges;
-            return <WidgetListCoreObjects data={data} dateAttribute={dateAttribute} ref={rootRef} />;
+            return (
+              <WidgetListCoreObjects
+                data={data}
+                dateAttribute={dateAttribute}
+                rootRef={rootRef.current ?? undefined}
+                widgetId={widgetId}
+                pageSize={selection.number ?? 10}
+              />
+            );
           }
           if (props) {
             return <WidgetNoData />;

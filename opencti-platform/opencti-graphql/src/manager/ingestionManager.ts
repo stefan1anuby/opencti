@@ -54,7 +54,7 @@ const asArray = (data: unknown) => {
   return [];
 };
 
-const updateBuiltInConnectorInfo = async (context: AuthContext, user_id: string | undefined, id: string, state: object) => {
+const updateBuiltInConnectorInfo = async (context: AuthContext, user_id: string | undefined, id: string, state?: object) => {
   // Patch the related connector
   const csvNow = utcDate();
   const connectorPatch: any = {
@@ -68,8 +68,10 @@ const updateBuiltInConnectorInfo = async (context: AuthContext, user_id: string 
       queue_messages_size: 0
     },
     connector_user_id: user_id,
-    connector_state: JSON.stringify(state)
   };
+  if (state) {
+    connectorPatch.connector_state = JSON.stringify(state);
+  }
   const connectorId = connectorIdFromIngestId(id);
   await patchAttribute(context, SYSTEM_USER, connectorId, ENTITY_TYPE_CONNECTOR, connectorPatch);
 };
@@ -82,7 +84,10 @@ const pushBundleToConnectorQueue = async (context: AuthContext, ingestion: Basic
   const work: any = await createWork(context, SYSTEM_USER, connector, workName, connector.internal_id, { receivedTime: now() });
   const stixBundle = JSON.stringify(bundle);
   const content = Buffer.from(stixBundle, 'utf-8').toString('base64');
-  await updateExpectationsNumber(context, SYSTEM_USER, work.id, bundle.objects.length);
+  if (bundle.objects.length === 1) {
+    // Only add explicit expectation if the worker will not split anything
+    await updateExpectationsNumber(context, SYSTEM_USER, work.id, bundle.objects.length);
+  }
   await pushToWorkerForConnector(connector.internal_id, {
     type: 'bundle',
     applicant_id: ingestion.user_id ?? OPENCTI_SYSTEM_UUID,
@@ -219,9 +224,9 @@ const rssDataHandler = async (context: AuthContext, httpRssGet: Getter, turndown
     lastPubDate = R.last(items)?.pubDate;
     await patchRssIngestion(context, SYSTEM_USER, ingestion.internal_id, { current_state_date: lastPubDate });
     // Patch the related connector
-    await updateBuiltInConnectorInfo(context, ingestion.user_id, ingestion.id, {
-      current_state_date: lastPubDate
-    });
+    await updateBuiltInConnectorInfo(context, ingestion.user_id, ingestion.id, { current_state_date: lastPubDate });
+  } else {
+    await updateBuiltInConnectorInfo(context, ingestion.user_id, ingestion.id);
   }
 };
 
@@ -321,27 +326,27 @@ export const processTaxiiResponse = async (context: AuthContext, ingestion: Basi
     await pushBundleToConnectorQueue(context, ingestion, bundle);
     const more = data.more || false;
     // Update the state
-    if (more && data.next) {
+    if (more && isNotEmptyField(data.next)) {
       // Do not touch to added_after_start
-      const state = { current_state_cursor: data.next, taxii_more: more, last_execution_date: now() };
-      await patchTaxiiIngestion(context, SYSTEM_USER, ingestion.internal_id, state);
-      await updateBuiltInConnectorInfo(context, ingestion.user_id, ingestion.id, state);
+      const state = { current_state_cursor: data.next, last_execution_date: now() };
+      const ingestionUpdate = await patchTaxiiIngestion(context, SYSTEM_USER, ingestion.internal_id, state);
+      const connectorState = { current_state_cursor: ingestionUpdate.current_state_cursor, added_after_start: ingestionUpdate.added_after_start };
+      await updateBuiltInConnectorInfo(context, ingestion.user_id, ingestion.id, connectorState);
     } else {
       // Reset the pagination cursor, and update date
       const state = {
         current_state_cursor: undefined,
-        taxii_more: more,
         added_after_start: addedLastHeader ? utcDate(addedLastHeader) : utcDate(),
         last_execution_date: now()
       };
-      await patchTaxiiIngestion(context, SYSTEM_USER, ingestion.internal_id, state);
-      await updateBuiltInConnectorInfo(context, ingestion.user_id, ingestion.id, state);
+      const ingestionUpdate = await patchTaxiiIngestion(context, SYSTEM_USER, ingestion.internal_id, state);
+      const connectorState = { current_state_cursor: ingestionUpdate.current_state_cursor, added_after_start: ingestionUpdate.added_after_start };
+      await updateBuiltInConnectorInfo(context, ingestion.user_id, ingestion.id, connectorState);
     }
   } else {
-    // Update the last run
-    const state = { last_execution_date: now(), current_state_cursor: undefined };
-    await patchTaxiiIngestion(context, SYSTEM_USER, ingestion.internal_id, state);
-    await updateBuiltInConnectorInfo(context, ingestion.user_id, ingestion.id, state);
+    const ingestionUpdate = await patchTaxiiIngestion(context, SYSTEM_USER, ingestion.internal_id, { last_execution_date: now(), current_state_cursor: undefined });
+    const connectorState = { current_state_cursor: ingestionUpdate.current_state_cursor, added_after_start: ingestionUpdate.added_after_start };
+    await updateBuiltInConnectorInfo(context, ingestion.user_id, ingestion.id, connectorState);
     logApp.info('[OPENCTI-MODULE] Taxii ingestion - taxii server has not sent any object.', {
       next: data.next,
       more: data.more,
@@ -421,6 +426,7 @@ const csvDataHandler = async (context: AuthContext, ingestion: BasicStoreEntityI
   const isUnchangedData = compareHashSHA256(data.toString(), ingestion.current_state_hash ?? '');
   if (isUnchangedData) {
     logApp.info(`[OPENCTI-MODULE] INGESTION - Unchanged data for csv ingest: ${ingestion.name}`);
+    await updateBuiltInConnectorInfo(context, ingestion.user_id, ingestion.id);
   } else {
     const objects = await csvDataToObjects(data, ingestion, csvMapperParsed, context);
     const bundle: StixBundle = { type: 'bundle', spec_version: '2.1', id: `bundle--${uuidv4()}`, objects };

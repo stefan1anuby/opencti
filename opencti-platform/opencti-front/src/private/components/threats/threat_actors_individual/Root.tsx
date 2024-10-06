@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import StixCoreObjectContentRoot from '@components/common/stix_core_objects/StixCoreObjectContentRoot';
+import useForceUpdate from '@components/common/bulk/useForceUpdate';
 import StixCoreObjectSimulationResult from '../../common/stix_core_objects/StixCoreObjectSimulationResult';
 import ErrorNotFound from '../../../../components/ErrorNotFound';
 import useQueryLoading from '../../../../utils/hooks/useQueryLoading';
@@ -109,6 +110,8 @@ const RootThreatActorIndividualComponent = ({
     queryRef,
   );
 
+  const { forceUpdate } = useForceUpdate();
+
   const isOverview = location.pathname === `/dashboard/threats/threat_actors_individual/${threatActorIndividualId}`;
   const paddingRight = getPaddingRight(location.pathname, threatActorIndividualId, '/dashboard/threats/threat_actors_individual');
   const link = `/dashboard/threats/threat_actors_individual/${threatActorIndividualId}/knowledge`;
@@ -147,7 +150,7 @@ const RootThreatActorIndividualComponent = ({
             />
           </Routes>
           <div style={{ paddingRight }}>
-            <Breadcrumbs variant="object" elements={[
+            <Breadcrumbs elements={[
               { label: t_i18n('Threats') },
               { label: t_i18n('Threat actors (individual)'), link: '/dashboard/threats/threat_actors_individual' },
               { label: threatActorIndividual.name, current: true },
@@ -235,7 +238,11 @@ const RootThreatActorIndividualComponent = ({
               />
               <Route
                 path="/knowledge/*"
-                element={<ThreatActorIndividualKnowledge threatActorIndividualData={threatActorIndividual} />}
+                element={
+                  <div key={forceUpdate}>
+                    <ThreatActorIndividualKnowledge threatActorIndividualData={threatActorIndividual} />
+                  </div>
+                }
               />
               <Route
                 path="/content/*"

@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import { graphql, PreloadedQuery, useFragment, usePreloadedQuery } from 'react-relay';
 import { Field, Form, Formik } from 'formik';
 import * as Yup from 'yup';
@@ -15,6 +15,13 @@ import { VpnKeyOutlined } from '@mui/icons-material';
 import ListItemText from '@mui/material/ListItemText';
 import EEChip from '@components/common/entreprise_edition/EEChip';
 import EETooltip from '@components/common/entreprise_edition/EETooltip';
+import Dialog from '@mui/material/Dialog';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+import DialogTitle from '@mui/material/DialogTitle';
+import DangerZoneBlock from '@components/common/dangerZone/DangerZoneBlock';
 import AccessesMenu from './AccessesMenu';
 import ObjectOrganizationField from '../common/form/ObjectOrganizationField';
 import { useFormatter } from '../../../components/i18n';
@@ -31,6 +38,8 @@ import useEnterpriseEdition from '../../../utils/hooks/useEnterpriseEdition';
 import ItemBoolean from '../../../components/ItemBoolean';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import useApiMutation from '../../../utils/hooks/useApiMutation';
+import useSensitiveModifications from '../../../utils/hooks/useSensitiveModifications';
+import Transition from '../../../components/Transition';
 
 // Deprecated - https://mui.com/system/styles/basics/
 // Do not use it for new code.
@@ -117,14 +126,24 @@ const PoliciesComponent: FunctionComponent<PoliciesComponentProps> = ({
   queryRef,
 }) => {
   const isEnterpriseEdition = useEnterpriseEdition();
+  const { isSensitiveModificationEnabled, isAllowed } = useSensitiveModifications();
+  const [openPlatformOrganizationChanges, setOpenPlatformOrganizationChanges] = useState<boolean>(false);
 
   const data = usePreloadedQuery(policiesQuery, queryRef);
   const settings = useFragment<Policies$key>(PoliciesFragment, data.settings);
+  const [platformOrganization, setPlatformOrganization] = useState(
+    settings.platform_organization
+      ? {
+        label: settings.platform_organization?.name,
+        value: settings.platform_organization?.id,
+      }
+      : null,
+  );
 
   const [commitField] = useApiMutation(policiesFieldPatch);
   const classes = useStyles();
   const { t_i18n } = useFormatter();
-  const handleSubmitField = (name: string, value: string | string[] | Option) => {
+  const handleSubmitField = (name: string, value: string | string[] | Option | null) => {
     policiesValidation()
       .validateAt(name, { [name]: value })
       .then(() => {
@@ -141,12 +160,7 @@ const PoliciesComponent: FunctionComponent<PoliciesComponentProps> = ({
       .catch(() => false);
   };
   const initialValues = {
-    platform_organization: settings.platform_organization
-      ? {
-        label: settings.platform_organization?.name,
-        value: settings.platform_organization?.id,
-      }
-      : '',
+    platform_organization: platformOrganization,
     platform_login_message: settings.platform_login_message,
     platform_consent_message: settings.platform_consent_message,
     platform_consent_confirm_text: settings.platform_consent_confirm_text,
@@ -165,43 +179,85 @@ const PoliciesComponent: FunctionComponent<PoliciesComponentProps> = ({
   return (
     <div className={classes.container}>
       <AccessesMenu />
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Settings') }, { label: t_i18n('Security') }, { label: t_i18n('Policies'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Settings') }, { label: t_i18n('Security') }, { label: t_i18n('Policies'), current: true }]} />
       <Grid container={true} spacing={3}>
         <Grid item xs={12}>
           <Formik
-            onSubmit={() => {}}
+            onSubmit={() => {
+            }}
             initialValues={initialValues}
             enableReinitialize={true}
             validationSchema={policiesValidation()}
           >
-            {() => (
+            {({ values, setFieldValue }) => (
               <Form>
                 <Grid container={true} spacing={3}>
                   <Grid item xs={6}>
-                    <Typography variant="h4" gutterBottom={true}>
-                      {t_i18n('Platform main organization')} <EEChip />
-                    </Typography>
-                    <Paper classes={{ root: classes.paper }} className={'paper-for-grid'} variant="outlined">
-                      <Alert severity="warning" variant="outlined">
-                        {t_i18n(
-                          'When you set a platform organization, all the pieces of knowledge which are not shared with any organization will be accessible only for users part of the platform one.',
-                        )}
-                      </Alert>
-                      <EETooltip>
-                        <span>
-                          <ObjectOrganizationField
-                            name="platform_organization"
-                            disabled={!isEnterpriseEdition}
-                            label={'Platform organization'}
-                            onChange={(name: string, value: Option) => handleSubmitField(name, value || null)
-                            }
-                            style={{ width: '100%', marginTop: 20 }}
-                            multiple={false}
-                            outlined={false}
-                          />
-                        </span>
-                      </EETooltip>
-                    </Paper>
+                    <DangerZoneBlock
+                      title={(
+                        <>
+                          {t_i18n('Platform main organization')} <EEChip />
+                        </>
+                      )}
+                      component={({ disabled, style }) => (
+                        <Paper classes={{ root: classes.paper }} className={'paper-for-grid'} variant="outlined" style={style}>
+                          <Alert severity="warning" variant="outlined">
+                            {t_i18n(
+                              'When you set a platform organization, all the pieces of knowledge which are not shared with any organization will be accessible only for users part of the platform one.',
+                            )}
+                          </Alert>
+                          <EETooltip>
+                            <ObjectOrganizationField
+                              name="platform_organization"
+                              disabled={disabled || !isEnterpriseEdition || (isSensitiveModificationEnabled && !isAllowed)}
+                              label={'Platform organization'}
+                              onChange={() => setOpenPlatformOrganizationChanges(true)}
+                              style={{ width: '100%', marginTop: 20 }}
+                              multiple={false}
+                              outlined={false}
+                            />
+                          </EETooltip>
+                          <Dialog
+                            PaperProps={{ elevation: 1 }}
+                            open={openPlatformOrganizationChanges}
+                            keepMounted
+                            TransitionComponent={Transition}
+                            onClose={() => setOpenPlatformOrganizationChanges(false)}
+                          >
+                            <DialogTitle>{t_i18n('Warning')}</DialogTitle>
+                            <DialogContent>
+                              <DialogContentText>
+                                <Alert severity="warning" variant="filled" color="dangerZone">
+                                  {t_i18n(
+                                    'This change may have an impact on users and connectors who WILL NO LONGER BE ABLE TO ACCESS KNOWLEDGE if they do not belong to the main platform organization.',
+                                  )}
+                                </Alert>
+                              </DialogContentText>
+                            </DialogContent>
+                            <DialogActions>
+                              <Button
+                                onClick={() => {
+                                  setFieldValue('platform_organization', platformOrganization);
+                                  setOpenPlatformOrganizationChanges(false);
+                                }}
+                              >
+                                {t_i18n('Cancel')}
+                              </Button>
+                              <Button
+                                color="secondary"
+                                onClick={() => {
+                                  setPlatformOrganization(values.platform_organization);
+                                  setOpenPlatformOrganizationChanges(false);
+                                  handleSubmitField('platform_organization', values.platform_organization);
+                                }}
+                              >
+                                {t_i18n('Validate')}
+                              </Button>
+                            </DialogActions>
+                          </Dialog>
+                        </Paper>
+                      )}
+                    />
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="h4" gutterBottom={true}>

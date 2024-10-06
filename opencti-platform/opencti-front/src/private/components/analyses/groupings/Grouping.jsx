@@ -12,6 +12,7 @@ import { KNOWLEDGE_KNUPDATE } from '../../../../utils/hooks/useGranted';
 import StixCoreObjectOrStixCoreRelationshipNotes from '../notes/StixCoreObjectOrStixCoreRelationshipNotes';
 import StixCoreObjectLatestHistory from '../../common/stix_core_objects/StixCoreObjectLatestHistory';
 import useOverviewLayoutCustomization from '../../../../utils/hooks/useOverviewLayoutCustomization';
+import { useGetCurrentUserAccessRight } from '../../../../utils/authorizedMembers';
 
 // Deprecated - https://mui.com/system/styles/basics/
 // Do not use it for new code.
@@ -27,9 +28,10 @@ const GroupingComponent = ({ grouping }) => {
   const isFABReplaced = isFeatureEnable('FAB_REPLACEMENT');
 
   const overviewLayoutCustomization = useOverviewLayoutCustomization(grouping.entity_type);
+  const { canEdit } = useGetCurrentUserAccessRight(grouping.currentUserAccessRight);
 
   return (
-    <div data-testid="grouping-details-page">
+    <div data-testid='grouping-details-page'>
       <Grid
         container={true}
         spacing={3}
@@ -84,7 +86,7 @@ const GroupingComponent = ({ grouping }) => {
         }
       </Grid>
       {!isFABReplaced && (
-        <Security needs={[KNOWLEDGE_KNUPDATE]}>
+        <Security needs={[KNOWLEDGE_KNUPDATE]} hasAccess={canEdit}>
           <GroupingEdition groupingId={grouping.id} />
         </Security>
       )}
@@ -139,6 +141,7 @@ export default createFragmentContainer(GroupingComponent, {
         }
       }
       workflowEnabled
+      currentUserAccessRight
       ...GroupingDetails_grouping
       ...ContainerHeader_container
     }

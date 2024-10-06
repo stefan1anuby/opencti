@@ -144,9 +144,9 @@ const ThreatActorsIndividual = () => {
       sophistication: {},
       resource_level: {},
       creator: {},
+      objectLabel: {},
       modified: {},
       objectMarking: { percentWidth: 10 },
-      objectLabel: {},
     };
 
     const preloadedPaginationProps = {
@@ -177,7 +177,7 @@ const ThreatActorsIndividual = () => {
               </ToggleButton>),
               (<ToggleButton key="lines" value="lines" aria-label="lines">
                 <Tooltip title={t_i18n('Lines view')}>
-                  <ViewListOutlined color="primary" fontSize="small" />
+                  <ViewListOutlined color="secondary" fontSize="small" />
                 </Tooltip>
               </ToggleButton>),
             ]}
@@ -194,7 +194,7 @@ const ThreatActorsIndividual = () => {
 
   return (
     <>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Threats') }, { label: t_i18n('Threat actors (individual)'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Threats') }, { label: t_i18n('Threat actors (individual)'), current: true }]} />
       {viewStorage.view !== 'lines' ? renderCards() : renderList()}
       {!isFABReplaced && (
         <Security needs={[KNOWLEDGE_KNUPDATE]}>

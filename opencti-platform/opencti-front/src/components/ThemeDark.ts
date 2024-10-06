@@ -34,6 +34,7 @@ const ThemeDark = (
       main: '#f44336',
       dark: '#c62828',
     },
+    dangerZone: { main: '#f6685e', light: '#fbc2be', dark: '#f44336', contrastText: 'black', text: { primary: '#fbc2be' } },
     success: { main: '#03a847' },
     primary: { main: primary || THEME_DARK_DEFAULT_PRIMARY },
     secondary: { main: secondary || THEME_DARK_DEFAULT_SECONDARY },
@@ -290,9 +291,11 @@ const ThemeDark = (
         root: {
           '&.Mui-selected': {
             boxShadow: `2px 0 ${primary || THEME_DARK_DEFAULT_PRIMARY} inset`,
+            backgroundColor: `${hexToRGB(primary || THEME_DARK_DEFAULT_PRIMARY, 0.24)}`,
           },
           '&.Mui-selected:hover': {
             boxShadow: `2px 0 ${primary || THEME_DARK_DEFAULT_PRIMARY} inset`,
+            backgroundColor: `${hexToRGB(primary || THEME_DARK_DEFAULT_PRIMARY, 0.32)}`,
           },
         },
       },

@@ -41,11 +41,11 @@ const IndicatorObservablesComponent = ({ indicator }) => {
             isSortable: false,
           },
           observable_value: {
-            percentWidth: 60,
+            percentWidth: 55,
             isSortable: false,
           },
           created_at: {
-            percentWidth: 20,
+            percentWidth: 25,
             isSortable: false,
           },
         }}
@@ -54,7 +54,7 @@ const IndicatorObservablesComponent = ({ indicator }) => {
         rootRef={ref}
         storageKey={`indicator-observables-${indicator.id}`}
         variant={DataTableVariant.inline}
-        disableNavigation
+        hideHeaders
         actions={(observable) => (
           <IndicatorObservablePopover
             indicatorId={indicator.id}

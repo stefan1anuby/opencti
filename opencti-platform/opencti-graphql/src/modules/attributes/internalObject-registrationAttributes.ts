@@ -26,12 +26,14 @@ import {
 } from '../../schema/internalObject';
 import { ENTITY_TYPE_IDENTITY_ORGANIZATION } from '../organization/organization-types';
 import { ENTITY_TYPE_MARKING_DEFINITION } from '../../schema/stixMetaObject';
+import { EVENT_ACCESS_VALUES, EVENT_SCOPE_VALUES, EVENT_STATUS_VALUES, EVENT_TYPE_VALUES } from '../../manager/activityListener';
+import { RETENTION_SCOPE_VALUES, RETENTION_UNIT_VALUES } from '../../manager/retentionManager';
 
 const HistoryDefinition: AttributeDefinition[] = [
-  { name: 'event_type', label: 'Event type', type: 'string', format: 'enum', values: ['authentication', 'read', 'mutation', 'file', 'command'], editDefault: false, mandatoryType: 'internal', multiple: false, upsert: false, isFilterable: true },
-  { name: 'event_status', label: 'Event status', type: 'string', format: 'enum', values: ['error', 'success'], editDefault: false, mandatoryType: 'internal', multiple: false, upsert: false, isFilterable: false },
-  { name: 'event_access', label: 'Event access', type: 'string', format: 'enum', values: ['extended', 'administration'], editDefault: false, mandatoryType: 'internal', multiple: false, upsert: false, isFilterable: false },
-  { name: 'event_scope', label: 'Event scope', type: 'string', format: 'enum', values: ['create', 'update', 'delete', 'read', 'search', 'enrich', 'download', 'import', 'export', 'login', 'logout'], editDefault: false, mandatoryType: 'internal', multiple: false, upsert: false, isFilterable: true },
+  { name: 'event_type', label: 'Event type', type: 'string', format: 'enum', values: EVENT_TYPE_VALUES, editDefault: false, mandatoryType: 'internal', multiple: false, upsert: false, isFilterable: true },
+  { name: 'event_status', label: 'Event status', type: 'string', format: 'enum', values: EVENT_STATUS_VALUES, editDefault: false, mandatoryType: 'internal', multiple: false, upsert: false, isFilterable: false },
+  { name: 'event_access', label: 'Event access', type: 'string', format: 'enum', values: EVENT_ACCESS_VALUES, editDefault: false, mandatoryType: 'internal', multiple: false, upsert: false, isFilterable: false },
+  { name: 'event_scope', label: 'Event scope', type: 'string', format: 'enum', values: EVENT_SCOPE_VALUES, editDefault: false, mandatoryType: 'internal', multiple: false, upsert: false, isFilterable: true },
   {
     name: 'user_id',
     label: 'User ID',
@@ -346,6 +348,7 @@ const internalObjectsAttributes: { [k: string]: Array<AttributeDefinition> } = {
   [ENTITY_TYPE_ROLE]: [
     { name: 'name', label: 'Name', type: 'string', format: 'short', mandatoryType: 'external', editDefault: true, multiple: false, upsert: false, isFilterable: true },
     { name: 'description', label: 'Description', type: 'string', format: 'text', mandatoryType: 'no', editDefault: false, multiple: false, upsert: false, isFilterable: true },
+    { name: 'can_manage_sensitive_config', label: 'Is sensitive changes allowed', type: 'boolean', mandatoryType: 'no', editDefault: false, multiple: false, upsert: false, isFilterable: false, featureFlag: 'PROTECT_SENSITIVE_CHANGES' },
   ],
   [ENTITY_TYPE_RULE]: [
     { name: 'active', label: 'Status', type: 'boolean', mandatoryType: 'no', editDefault: false, multiple: false, upsert: true, isFilterable: true }
@@ -446,7 +449,7 @@ const internalObjectsAttributes: { [k: string]: Array<AttributeDefinition> } = {
     { name: 'timestamp', label: 'Timestamp', type: 'date', editDefault: false, mandatoryType: 'no', multiple: false, upsert: false, isFilterable: true },
     { name: 'updated_at', label: 'Updated at', type: 'date', editDefault: false, mandatoryType: 'no', multiple: false, upsert: false, isFilterable: true },
     { name: 'event_source_id', label: 'Event source', type: 'string', format: 'short', editDefault: false, mandatoryType: 'external', multiple: false, upsert: false, isFilterable: false },
-    { name: 'event_type', label: 'Event type', type: 'string', format: 'enum', values: ['authentication', 'read', 'mutation', 'file', 'command'], editDefault: false, mandatoryType: 'external', multiple: false, upsert: false, isFilterable: true },
+    { name: 'event_type', label: 'Event type', type: 'string', format: 'enum', values: EVENT_TYPE_VALUES, editDefault: false, mandatoryType: 'external', multiple: false, upsert: false, isFilterable: true },
     { name: 'user_id', label: 'User ID', type: 'string', format: 'id', entityTypes: [ENTITY_TYPE_USER], editDefault: false, mandatoryType: 'no', multiple: false, upsert: false, isFilterable: false },
     { name: 'connector_id', label: 'Connector ID', type: 'string', format: 'short', editDefault: false, mandatoryType: 'no', multiple: false, upsert: false, isFilterable: true },
     { name: 'status', label: 'Status', type: 'string', format: 'short', editDefault: false, mandatoryType: 'external', multiple: false, upsert: false, isFilterable: true },
@@ -504,11 +507,11 @@ const internalObjectsAttributes: { [k: string]: Array<AttributeDefinition> } = {
     { name: 'name', label: 'Name', type: 'string', format: 'short', mandatoryType: 'external', editDefault: true, multiple: false, upsert: false, isFilterable: true },
     { name: 'filters', label: 'Filters', type: 'string', format: 'text', mandatoryType: 'external', editDefault: true, multiple: false, upsert: false, isFilterable: false },
     { name: 'max_retention', label: 'Maximum retention', type: 'numeric', precision: 'integer', mandatoryType: 'external', editDefault: true, multiple: false, upsert: false, isFilterable: true },
-    { name: 'retention_unit', label: 'Maximum retention unit', type: 'string', format: 'enum', values: ['minutes', 'hours', 'days'], mandatoryType: 'no', editDefault: true, multiple: false, upsert: false, isFilterable: true },
+    { name: 'retention_unit', label: 'Maximum retention unit', type: 'string', format: 'enum', values: RETENTION_UNIT_VALUES, mandatoryType: 'no', editDefault: true, multiple: false, upsert: false, isFilterable: true },
     { name: 'last_execution_date', label: 'Last execution date', type: 'date', mandatoryType: 'no', editDefault: false, multiple: false, upsert: false, isFilterable: true },
     { name: 'last_deleted_count', label: 'Last deleted count', precision: 'integer', type: 'numeric', mandatoryType: 'no', editDefault: false, multiple: false, upsert: false, isFilterable: true },
     { name: 'remaining_count', label: 'Remaining count', precision: 'integer', type: 'numeric', mandatoryType: 'no', editDefault: false, multiple: false, upsert: false, isFilterable: true },
-    { name: 'scope', label: 'Scope', type: 'string', format: 'enum', values: ['knowledge', 'file', 'workbench'], mandatoryType: 'external', editDefault: false, multiple: false, upsert: false, isFilterable: true },
+    { name: 'scope', label: 'Scope', type: 'string', format: 'enum', values: RETENTION_SCOPE_VALUES, mandatoryType: 'external', editDefault: false, multiple: false, upsert: false, isFilterable: true },
   ],
   [ENTITY_TYPE_SYNC]: [
     { name: 'name', label: 'Name', type: 'string', format: 'short', mandatoryType: 'external', editDefault: true, multiple: false, upsert: false, isFilterable: true },

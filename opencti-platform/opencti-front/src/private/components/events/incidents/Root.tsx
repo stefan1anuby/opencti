@@ -12,6 +12,7 @@ import StixCoreObjectSimulationResult from '@components/common/stix_core_objects
 import StixCoreObjectContentRoot from '@components/common/stix_core_objects/StixCoreObjectContentRoot';
 import Security from 'src/utils/Security';
 import { KNOWLEDGE_KNUPDATE } from 'src/utils/hooks/useGranted';
+import useForceUpdate from '@components/common/bulk/useForceUpdate';
 import Incident from './Incident';
 import IncidentKnowledge from './IncidentKnowledge';
 import StixDomainObjectHeader from '../../common/stix_domain_objects/StixDomainObjectHeader';
@@ -29,6 +30,7 @@ import { useFormatter } from '../../../../components/i18n';
 import Breadcrumbs from '../../../../components/Breadcrumbs';
 import { getCurrentTab } from '../../../../utils/utils';
 import IncidentEdition from './IncidentEdition';
+import useHelper from '../../../../utils/hooks/useHelper';
 
 const subscription = graphql`
   subscription RootIncidentSubscription($id: ID!) {
@@ -85,9 +87,12 @@ const RootIncidentComponent = ({ queryRef }) => {
     [incidentId],
   );
   const location = useLocation();
+  const { isFeatureEnable } = useHelper();
+  const isFABReplaced = isFeatureEnable('FAB_REPLACEMENT');
   const { t_i18n } = useFormatter();
   useSubscription(subConfig);
   const data = usePreloadedQuery(incidentQuery, queryRef);
+  const { forceUpdate } = useForceUpdate();
   const { incident, connectorsForImport, connectorsForExport } = data;
   const link = `/dashboard/events/incidents/${incidentId}/knowledge`;
   const isOverview = location.pathname === `/dashboard/events/incidents/${incident?.id}`;
@@ -126,7 +131,7 @@ const RootIncidentComponent = ({ queryRef }) => {
           <div
             style={{ paddingRight: paddingRightValue() }}
           >
-            <Breadcrumbs variant="object" elements={[
+            <Breadcrumbs elements={[
               { label: t_i18n('Events') },
               { label: t_i18n('Incidents'), link: '/dashboard/events/incidents' },
               { label: incident.name, current: true },
@@ -136,7 +141,7 @@ const RootIncidentComponent = ({ queryRef }) => {
               entityType="Incident"
               stixDomainObject={incident}
               PopoverComponent={IncidentPopover}
-              EditComponent={(
+              EditComponent={isFABReplaced && (
                 <Security needs={[KNOWLEDGE_KNUPDATE]}>
                   <IncidentEdition incidentId={incident.id} />
                 </Security>
@@ -213,7 +218,11 @@ const RootIncidentComponent = ({ queryRef }) => {
               />
               <Route
                 path="/knowledge/*"
-                element={<IncidentKnowledge incidentData={incident} />}
+                element={
+                  <div key={forceUpdate}>
+                    <IncidentKnowledge incidentData={incident} />
+                  </div>
+                }
               />
               <Route
                 path="/content/*"

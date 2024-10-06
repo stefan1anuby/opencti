@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import useQueryLoading from 'src/utils/hooks/useQueryLoading';
+import useForceUpdate from '@components/common/bulk/useForceUpdate';
 import StixCoreObjectContentRoot from '../../common/stix_core_objects/StixCoreObjectContentRoot';
 import Channel from './Channel';
 import ChannelKnowledge from './ChannelKnowledge';
@@ -95,6 +96,8 @@ const RootChannel = ({ queryRef, channelId }: RootChannelProps) => {
     connectorsForImport,
   } = usePreloadedQuery<RootChannelQuery>(channelQuery, queryRef);
 
+  const { forceUpdate } = useForceUpdate();
+
   const paddingRight = getPaddingRight(location.pathname, channelId, '/dashboard/arsenal/channels');
   const link = `/dashboard/arsenal/channels/${channelId}/knowledge`;
   return (
@@ -127,7 +130,7 @@ const RootChannel = ({ queryRef, channelId }: RootChannelProps) => {
             />
           </Routes>
           <div style={{ paddingRight }}>
-            <Breadcrumbs variant="object" elements={[
+            <Breadcrumbs elements={[
               { label: t_i18n('Arsenal') },
               { label: t_i18n('Channels'), link: '/dashboard/arsenal/channels' },
               { label: channel.name, current: true },
@@ -210,7 +213,11 @@ const RootChannel = ({ queryRef, channelId }: RootChannelProps) => {
               />
               <Route
                 path="/knowledge/*"
-                element={<ChannelKnowledge channel={channel} />}
+                element={
+                  <div key={forceUpdate}>
+                    <ChannelKnowledge channel={channel} />
+                  </div>
+                }
               />
               <Route
                 path="/content/*"

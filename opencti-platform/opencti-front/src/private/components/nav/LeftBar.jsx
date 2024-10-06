@@ -139,14 +139,19 @@ const useStyles = makeStyles((theme) => createStyles({
     fontSize: 14,
   },
   menuSubItem: {
+    height: 25,
+    fontWeight: 600,
+    fontSize: 12,
+  },
+  menuSubItemWithIcon: {
     paddingLeft: 20,
     height: 25,
-    fontWeight: 500,
+    fontWeight: 600,
     fontSize: 12,
   },
   menuItemText: {
     padding: '1px 0 0 15px',
-    fontWeight: 500,
+    fontWeight: 600,
     fontSize: 14,
   },
   menuSubItemText: {
@@ -154,7 +159,15 @@ const useStyles = makeStyles((theme) => createStyles({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     padding: '1px 0 0 10px',
-    fontWeight: 500,
+    fontWeight: 600,
+    fontSize: 12,
+  },
+  menuSubItemTextWithoutIcon: {
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    padding: '1px 0 0 0',
+    fontWeight: 600,
     fontSize: 12,
   },
   menuCollapseOpen: {
@@ -359,11 +372,13 @@ const LeftBar = () => {
                   to={entry.link}
                   selected={entry.exact ? location.pathname === entry.link : location.pathname.includes(entry.link)}
                   dense={true}
-                  classes={{ root: classes.menuSubItem }}
+                  classes={{ root: submenu_show_icons && entry.icon ? classes.menuSubItemWithIcon : classes.menuSubItem }}
                 >
-                  {submenu_show_icons && entry.icon && <ListItemIcon classes={{ root: classes.menuItemIcon }} style={{ minWidth: 20 }}>
-                    {entry.icon}
-                  </ListItemIcon>}
+                  {submenu_show_icons && entry.icon && (
+                    <ListItemIcon classes={{ root: classes.menuItemIcon }} style={{ minWidth: 20 }}>
+                      {entry.icon}
+                    </ListItemIcon>
+                  )}
                   <ListItemText
                     classes={{ primary: classes.menuSubItemText }}
                     primary={t_i18n(entry.label)}
@@ -414,11 +429,13 @@ const LeftBar = () => {
                 classes={{ root: classes.menuHoverItem }}
                 onClick={handleSelectedMenuClose}
               >
-                {submenu_show_icons && entry.icon && <ListItemIcon classes={{ root: classes.menuItemIcon }} style={{ minWidth: 20 }}>
-                  {entry.icon}
-                </ListItemIcon>}
+                {submenu_show_icons && entry.icon && (
+                  <ListItemIcon classes={{ root: classes.menuItemIcon }} style={{ minWidth: 20 }}>
+                    {entry.icon}
+                  </ListItemIcon>
+                )}
                 <ListItemText
-                  classes={{ primary: classes.menuItemText }}
+                  classes={{ primary: submenu_show_icons && entry.icon ? classes.menuSubItemText : classes.menuSubItemTextWithoutIcon }}
                   primary={t_i18n(entry.label)}
                 />
               </MenuItem>
@@ -465,7 +482,7 @@ const LeftBar = () => {
               </ListItemIcon>
               {navOpen && (
                 <ListItemText
-                  classes={{ primary: classes.menuItemText }}
+                  classes={{ primary: classes.menuSubItemText }}
                   primary={t_i18n('Home')}
                 />
               )}
@@ -791,15 +808,15 @@ const LeftBar = () => {
                   onMouseLeave={() => !navOpen && handleSelectedMenuClose()}
                 >
                   <ListItemIcon classes={{ root: classes.menuItemIcon }} style={{ minWidth: 20 }}>
-                    <InsertChartOutlinedOutlined/>
+                    <InsertChartOutlinedOutlined />
                   </ListItemIcon>
                   {navOpen && (
-                  <ListItemText
-                    classes={{ primary: classes.menuItemText }}
-                    primary={t_i18n('Dashboards')}
-                  />
+                    <ListItemText
+                      classes={{ primary: classes.menuItemText }}
+                      primary={t_i18n('Dashboards')}
+                    />
                   )}
-                  {navOpen && (selectedMenu.includes('dashboards') ? <ExpandLessOutlined/> : <ExpandMoreOutlined/>)}
+                  {navOpen && (selectedMenu.includes('dashboards') ? <ExpandLessOutlined /> : <ExpandMoreOutlined />)}
                 </MenuItem>
                 {generateSubMenu(
                   'dashboards',

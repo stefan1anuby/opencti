@@ -7,6 +7,7 @@ import Tab from '@mui/material/Tab';
 import useQueryLoading from 'src/utils/hooks/useQueryLoading';
 import { GraphQLSubscriptionConfig } from 'relay-runtime';
 import { RootCampaignSubscription } from '@components/threats/campaigns/__generated__/RootCampaignSubscription.graphql';
+import useForceUpdate from '@components/common/bulk/useForceUpdate';
 import StixCoreObjectContentRoot from '../../common/stix_core_objects/StixCoreObjectContentRoot';
 import StixCoreObjectSimulationResult from '../../common/stix_core_objects/StixCoreObjectSimulationResult';
 import Campaign from './Campaign';
@@ -96,6 +97,8 @@ const RootCampaign = ({ campaignId, queryRef }: RootCampaignProps) => {
     connectorsForImport,
   } = usePreloadedQuery<RootCampaignQuery>(campaignQuery, queryRef);
 
+  const { forceUpdate } = useForceUpdate();
+
   const link = `/dashboard/threats/campaigns/${campaignId}/knowledge`;
   const isOverview = location.pathname === `/dashboard/threats/campaigns/${campaignId}`;
   const paddingRight = getPaddingRight(location.pathname, campaignId, '/dashboard/threats/campaigns');
@@ -131,7 +134,7 @@ const RootCampaign = ({ campaignId, queryRef }: RootCampaignProps) => {
             />
           </Routes>
           <div style={{ paddingRight }}>
-            <Breadcrumbs variant="object" elements={[
+            <Breadcrumbs elements={[
               { label: t_i18n('Threats') },
               { label: t_i18n('Campaigns'), link: '/dashboard/threats/campaigns' },
               { label: campaign.name, current: true },
@@ -217,7 +220,11 @@ const RootCampaign = ({ campaignId, queryRef }: RootCampaignProps) => {
               />
               <Route
                 path="/knowledge/*"
-                element={<CampaignKnowledge campaign={campaign} />}
+                element={
+                  <div key={forceUpdate}>
+                    <CampaignKnowledge campaign={campaign} />
+                  </div>
+                }
               />
               <Route
                 path="/content/*"

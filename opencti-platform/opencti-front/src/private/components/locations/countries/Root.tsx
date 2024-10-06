@@ -9,6 +9,7 @@ import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import StixCoreObjectContentRoot from '@components/common/stix_core_objects/StixCoreObjectContentRoot';
+import useForceUpdate from '@components/common/bulk/useForceUpdate';
 import Country from './Country';
 import CountryKnowledge from './CountryKnowledge';
 import StixDomainObjectHeader from '../../common/stix_domain_objects/StixDomainObjectHeader';
@@ -29,6 +30,7 @@ import { getCurrentTab, getPaddingRight } from '../../../../utils/utils';
 import CountryEdition from './CountryEdition';
 import Security from '../../../../utils/Security';
 import { KNOWLEDGE_KNUPDATE } from '../../../../utils/hooks/useGranted';
+import useHelper from '../../../../utils/hooks/useHelper';
 
 const subscription = graphql`
   subscription RootCountriesSubscription($id: ID!) {
@@ -85,8 +87,11 @@ const RootCountryComponent = ({ queryRef, countryId }) => {
   );
   useSubscription(subConfig);
   const location = useLocation();
+  const { isFeatureEnable } = useHelper();
+  const isFABReplaced = isFeatureEnable('FAB_REPLACEMENT');
   const { t_i18n } = useFormatter();
   const data = usePreloadedQuery(countryQuery, queryRef);
+  const { forceUpdate } = useForceUpdate();
   const { country, connectorsForImport, connectorsForExport } = data;
   const link = `/dashboard/locations/countries/${countryId}/knowledge`;
   const paddingRight = getPaddingRight(location.pathname, country?.id, '/dashboard/locations/countries');
@@ -121,7 +126,7 @@ const RootCountryComponent = ({ queryRef, countryId }) => {
             />
           </Routes>
           <div style={{ paddingRight }}>
-            <Breadcrumbs variant="object" elements={[
+            <Breadcrumbs elements={[
               { label: t_i18n('Locations') },
               { label: t_i18n('Countries'), link: '/dashboard/locations/countries' },
               { label: country.name, current: true },
@@ -132,7 +137,7 @@ const RootCountryComponent = ({ queryRef, countryId }) => {
               disableSharing={true}
               stixDomainObject={country}
               PopoverComponent={<CountryPopover id={country.id} />}
-              EditComponent={(
+              EditComponent={isFABReplaced && (
                 <Security needs={[KNOWLEDGE_KNUPDATE]}>
                   <CountryEdition countryId={country.id} />
                 </Security>
@@ -207,7 +212,11 @@ const RootCountryComponent = ({ queryRef, countryId }) => {
               />
               <Route
                 path="/knowledge/*"
-                element={<CountryKnowledge countryData={country} />}
+                element={
+                  <div key={forceUpdate}>
+                    <CountryKnowledge countryData={country} />
+                  </div>
+                }
               />
               <Route
                 path="/content/*"

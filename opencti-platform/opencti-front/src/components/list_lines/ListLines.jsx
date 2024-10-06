@@ -61,7 +61,6 @@ const styles = (theme) => ({
     display: 'flex',
     alignItems: 'center',
     gap: 10,
-    marginTop: -10,
     paddingBottom: 10,
     flexWrap: 'wrap',
   },
@@ -106,6 +105,7 @@ const styles = (theme) => ({
     alignItems: 'center',
   },
   headerItemText: {
+    marginRight: theme.spacing(1),
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',

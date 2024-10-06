@@ -228,7 +228,7 @@ const BULK_OBSERVABLES = [
   { type: 'Tracking-Number', keys: ['value'] },
   { type: 'Url', keys: ['value'] },
   { type: 'User-Agent', keys: ['value'] },
-  { type: 'StixFile', keys: ['hashes_MD5', 'hashes_SHA-1', 'hashes_SHA-256', 'hashes_SHA-512'] },
+  { type: 'StixFile', keys: ['name', 'hashes_MD5', 'hashes_SHA-1', 'hashes_SHA-256', 'hashes_SHA-512'] },
   { type: 'Artifact', keys: ['hashes_MD5', 'hashes_SHA-1', 'hashes_SHA-256', 'hashes_SHA-512'] },
   { type: 'X509-Certificate', keys: ['hashes_MD5', 'hashes_SHA-1', 'hashes_SHA-256', 'hashes_SHA-512'] },
 ];
@@ -527,31 +527,31 @@ const StixCyberObservableCreation = ({
                 initialValues['hashes_SHA-256'] = '';
                 initialValues['hashes_SHA-512'] = '';
                 // Dynamically include validation options for File Hash Options.
-                const md5Regex = /^([a-f0-9]{32}\n*)+$/i;
-                const sha1Regex = /^([a-f0-9]{40}\n*)+$/i;
-                const sha256Regex = /^([a-f0-9]{64}\n*)+$/i;
-                const sha512Regex = /^([a-f0-9]{128}\n*)+$/i;
+                const md5Regex = /(^[a-fA-F0-9]{32})(?:\n[a-fA-F0-9]{32}){0,49}$/i;
+                const sha1Regex = /(^[a-fA-F0-9]{40})(?:\n[a-fA-F0-9]{40}){0,49}$/i;
+                const sha256Regex = /(^[a-fA-F0-9]{64})(?:\n[a-fA-F0-9]{64}){0,49}$/i;
+                const sha512Regex = /(^[a-fA-F0-9]{128})(?:\n[a-fA-F0-9]{128}){0,49}$/i;
                 extraFieldsToValidate = {
                   hashes_MD5: Yup
-                    .string()
+                    .string().matches(md5Regex, t_i18n('MD5 values can only include A-F and 0-9, 32 characters'))
                     .when(['hashes_SHA-1', 'hashes_SHA-256', 'hashes_SHA-512', 'name'], {
                       is: (a, b, c, d) => !a && !b && !c && !d,
                       then: () => Yup.string().matches(md5Regex, t_i18n('MD5 values can only include A-F and 0-9, 32 characters')).required(t_i18n('MD5, SHA-1, SHA-256, SHA-512, or name is required')),
                     }),
                   'hashes_SHA-1': Yup
-                    .string()
+                    .string().matches(sha1Regex, t_i18n('SHA-1 values can only include A-F and 0-9, 40 characters'))
                     .when(['hashes_MD5', 'hashes_SHA-256', 'hashes_SHA-512', 'name'], {
                       is: (a, b, c, d) => !a && !b && !c && !d,
                       then: () => Yup.string().matches(sha1Regex, t_i18n('SHA-1 values can only include A-F and 0-9, 40 characters')).required(t_i18n('MD5, SHA-1, SHA-256, SHA-512, or name is required')),
                     }),
                   'hashes_SHA-256': Yup
-                    .string()
+                    .string().matches(sha256Regex, t_i18n('SHA-256 values can only include A-F and 0-9, 64 characters'))
                     .when(['hashes_MD5', 'hashes_SHA-1', 'hashes_SHA-512', 'name'], {
                       is: (a, b, c, d) => !a && !b && !c && !d,
                       then: () => Yup.string().matches(sha256Regex, t_i18n('SHA-256 values can only include A-F and 0-9, 64 characters')).required(t_i18n('MD5, SHA-1, SHA-256, SHA-512, or name is required')),
                     }),
                   'hashes_SHA-512': Yup
-                    .string()
+                    .string().matches(sha512Regex, t_i18n('SHA-512 values can only include A-F and 0-9, 128 characters'))
                     .when(['hashes_MD5', 'hashes_SHA-1', 'hashes_SHA-256', 'name'], {
                       is: (a, b, c, d) => !a && !b && !c && !d,
                       then: () => Yup.string().matches(sha512Regex, t_i18n('SHA-512 values can only include A-F and 0-9, 128 characters')).required(t_i18n('MD5, SHA-1, SHA-256, SHA-512, or name is required')),
@@ -600,7 +600,7 @@ const StixCyberObservableCreation = ({
               if (foundEntityType) initialValues[foundEntityType.field] = inputValue;
             }
 
-            const isFieldInBulk = (name) => isFeatureEnable('BULK_ENTITIES') && name === bulkSelectedKey;
+            const isFieldInBulk = (name) => name === bulkSelectedKey;
 
             return (
               <Formik
@@ -618,7 +618,7 @@ const StixCyberObservableCreation = ({
                   resetForm,
                 }) => (
                   <>
-                    {isFeatureEnable('BULK_ENTITIES') && bulkConf && (
+                    {bulkConf && (
                       <>
                         <BulkTextModal
                           title={t_i18n('Create multiple observables')}
@@ -680,7 +680,7 @@ const StixCyberObservableCreation = ({
                           if (bulkConf && attribute.value === bulkSelectedKey) {
                             return (
                               <Field
-                                component={isFeatureEnable('BULK_ENTITIES') ? BulkTextField : TextField}
+                                component={BulkTextField}
                                 variant="standard"
                                 name={attribute.value}
                                 label={t_i18n(attribute.value)}
@@ -931,7 +931,7 @@ const StixCyberObservableCreation = ({
               <Close fontSize="small" color="primary" />
             </IconButton>
             <Typography variant="h6">{t_i18n('Create an observable')}</Typography>
-            {isFeatureEnable('BULK_ENTITIES') && !isFromBulkRelation && status.type
+            {!isFromBulkRelation && status.type
               ? <BulkTextModalButton
                   onClick={() => setBulkOpen(true)}
                   title={t_i18n('Create multiple observables')}
@@ -949,7 +949,7 @@ const StixCyberObservableCreation = ({
   };
 
   const renderUnavailableBulkMessage = () => {
-    if (isFeatureEnable('BULK_ENTITIES') && isFromBulkRelation && !bulkConf) {
+    if (isFromBulkRelation && !bulkConf) {
       return (
         <Alert
           severity="info"
@@ -984,7 +984,7 @@ const StixCyberObservableCreation = ({
         >
           <DialogTitle style={{ display: 'flex' }}>
             {t_i18n('Create an observable')}
-            {isFeatureEnable('BULK_ENTITIES') && !isFromBulkRelation && status.type
+            {!isFromBulkRelation && status.type
               ? <BulkTextModalButton
                   sx={{ marginRight: 0 }}
                   onClick={() => setBulkOpen(true)}

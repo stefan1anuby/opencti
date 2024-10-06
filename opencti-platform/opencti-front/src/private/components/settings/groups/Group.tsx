@@ -30,6 +30,7 @@ import ItemIcon from '../../../../components/ItemIcon';
 import GroupHiddenTypesChipList from './GroupHiddenTypesChipList';
 import ExpandableMarkdown from '../../../../components/ExpandableMarkdown';
 import { checkIsMarkingAllowed } from '../../../../utils/markings/markingsFiltering';
+import useSensitiveModifications from '../../../../utils/hooks/useSensitiveModifications';
 
 // Deprecated - https://mui.com/system/styles/basics/
 // Do not use it for new code.
@@ -62,6 +63,7 @@ const groupFragment = graphql`
     rolesOrderMode: { type: "OrderingMode", defaultValue: asc }
   ) {
     id
+    standard_id
     entity_type
     name
     default_assignation
@@ -122,7 +124,10 @@ const groupFragment = graphql`
 const Group = ({ groupData }: { groupData: Group_group$key }) => {
   const classes = useStyles();
   const { t_i18n } = useFormatter();
+
   const group = useFragment<Group_group$key>(groupFragment, groupData);
+  const { isAllowed, isSensitive } = useSensitiveModifications(group.standard_id);
+
   const markingsSort = R.sortWith([
     R.ascend(R.propOr('TLP', 'definition_type')),
     R.descend(R.propOr(0, 'x_opencti_order')),
@@ -154,7 +159,7 @@ const Group = ({ groupData }: { groupData: Group_group$key }) => {
         {group.name}
       </Typography>
       <div className={classes.popover}>
-        <GroupPopover groupId={group.id} />
+        <GroupPopover groupId={group.id} disabled={!isAllowed} isSensitive={isSensitive} />
       </div>
       <div className="clearfix" />
       <Grid
@@ -249,15 +254,15 @@ const Group = ({ groupData }: { groupData: Group_group$key }) => {
                         primary={truncate(group.default_dashboard?.name, 40)}
                       />
                       {!canAccessDashboard && (
-                      <ListItemSecondaryAction>
-                        <Tooltip
-                          title={t_i18n(
-                            'You need to authorize this group to access this dashboard in the permissions of the workspace.',
-                          )}
-                        >
-                          <WarningOutlined color="warning" />
-                        </Tooltip>
-                      </ListItemSecondaryAction>
+                        <ListItemSecondaryAction>
+                          <Tooltip
+                            title={t_i18n(
+                              'You need to authorize this group to access this dashboard in the permissions of the workspace.',
+                            )}
+                          >
+                            <WarningOutlined color="warning" />
+                          </Tooltip>
+                        </ListItemSecondaryAction>
                       )}
                     </ListItem>
                   </List>
@@ -271,7 +276,7 @@ const Group = ({ groupData }: { groupData: Group_group$key }) => {
                 >
                   {t_i18n('Max Confidence Level')}
                 </Typography>
-                <div className="clearfix"/>
+                <div className="clearfix" />
                 <GroupConfidenceLevel
                   confidenceLevel={group.group_confidence_level}
                 />
@@ -411,12 +416,13 @@ const Group = ({ groupData }: { groupData: Group_group$key }) => {
                                   'The maximum shareable marking set for this definition type is not allowed for this group, so users can only share their allowed markings independently from the maximum shareable marking set.',
                                 )}
                                  >
-                                <WarningOutlined color="warning"/>
+                                <WarningOutlined color="warning" />
                               </Tooltip>
                             }
                           </ListItem>
                         );
-                      } if (group.not_shareable_marking_types.includes(type)) {
+                      }
+                      if (group.not_shareable_marking_types.includes(type)) {
                         return (
                           <ListItem
                             key={type}
@@ -458,7 +464,11 @@ const Group = ({ groupData }: { groupData: Group_group$key }) => {
         <Triggers recipientId={group.id} filterKey="authorized_members.id" />
         <GroupUsers groupId={group.id} />
       </Grid>
-      <GroupEdition groupId={group.id} />
+      <GroupEdition
+        groupId={group.id}
+        isSensitive={isSensitive}
+        disabled={!isAllowed}
+      />
     </div>
   );
 };

@@ -63,16 +63,21 @@ const Playbooks: FunctionComponent = () => {
     const dataColumns = {
       name: {
         label: 'Name',
-        width: '35%',
+        width: '25%',
         isSortable: true,
       },
       description: {
         label: 'Description',
-        width: '40%',
+        width: '30%',
+        isSortable: false,
+      },
+      messages: {
+        label: 'Messages',
+        width: '20%',
         isSortable: false,
       },
       playbook_running: {
-        label: 'Running',
+        label: 'Status',
         width: '15%',
         isSortable: true,
       },
@@ -118,7 +123,7 @@ const Playbooks: FunctionComponent = () => {
   };
   return (
     <div className={classes.container}>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Data') }, { label: t_i18n('Processing') }, { label: t_i18n('Automation'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Data') }, { label: t_i18n('Processing') }, { label: t_i18n('Automation'), current: true }]} />
       <ProcessingMenu />
       {isEnterpriseEdition ? (
         <>

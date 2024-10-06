@@ -80,6 +80,7 @@ const importWorkbenchLinesFragment = graphql`
     @connection(key: "Pagination_global_pendingFiles") {
       edges {
         node {
+          id
           ...ImportWorkbenchesContentFileLine_file
         }
       }
@@ -186,7 +187,7 @@ const ImportWorkbenchesContent = () => {
 
   return (
     <div style={{ height: '100%', paddingRight: 200 }} className="break">
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Data') }, { label: t_i18n('Analyst workbenches'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Data') }, { label: t_i18n('Analyst workbenches'), current: true }]} />
       <ImportMenu />
       <Dialog
         PaperProps={{ elevation: 1 }}

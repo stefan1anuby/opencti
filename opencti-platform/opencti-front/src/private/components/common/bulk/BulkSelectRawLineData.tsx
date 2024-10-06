@@ -66,7 +66,7 @@ const BulkSelectRawLineData : FunctionComponent<BulkSelectRawLineDataProps> = ({
     const possibleEntityTypes = entity.entityTypeList?.map((item) => item.entity_type) ?? [];
     return entityList.reduce((acc: autocompleteOptionsType[], cur) => {
       if (!acc.find((item) => item.label === t_i18n(`entity_${cur.toEntitytype}`))) {
-        const isSuggestion = possibleEntityTypes.includes(cur.toEntitytype);
+        const isSuggestion = possibleEntityTypes.includes(cur.toEntitytype) && cur.legitRelations.includes(selectedRelationType);
         return [...acc, {
           label: t_i18n(`entity_${cur.toEntitytype}`),
           value: cur,
@@ -75,7 +75,9 @@ const BulkSelectRawLineData : FunctionComponent<BulkSelectRawLineDataProps> = ({
         }];
       }
       return [...acc];
-    }, []).sort((a, b) => a.groupOrder - b.groupOrder);
+    }, [])
+      .sort((a, b) => (a.label < b.label ? -1 : 1))
+      .sort((a, b) => a.groupOrder - b.groupOrder);
   };
 
   const getAutocompleteValue = () => {

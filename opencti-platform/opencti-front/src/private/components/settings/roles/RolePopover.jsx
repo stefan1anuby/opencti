@@ -15,7 +15,6 @@ import Slide from '@mui/material/Slide';
 import MoreVert from '@mui/icons-material/MoreVert';
 import inject18n from '../../../../components/i18n';
 import { commitMutation, QueryRenderer } from '../../../../relay/environment';
-import Loader from '../../../../components/Loader';
 import RoleEdition from './RoleEdition';
 import withRouter from '../../../../utils/compat_router/withRouter';
 
@@ -113,7 +112,7 @@ class RolePopover extends Component {
   }
 
   render() {
-    const { classes, t, roleId } = this.props;
+    const { classes, t, roleId, disabled, isSensitive } = this.props;
     return (
       <div className={classes.container}>
         <IconButton
@@ -121,7 +120,8 @@ class RolePopover extends Component {
           aria-haspopup="true"
           size="large"
           style={{ marginTop: 3 }}
-          color="primary"
+          disabled={disabled}
+          color={isSensitive ? 'dangerZone' : 'primary'}
         >
           <MoreVert />
         </IconButton>
@@ -150,7 +150,7 @@ class RolePopover extends Component {
                 />
               );
             }
-            return <Loader variant="inElement" />;
+            return null;
           }}
         />
         <Dialog

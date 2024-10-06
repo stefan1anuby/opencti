@@ -11,8 +11,9 @@ import * as Yup from 'yup';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
-import { makeStyles } from '@mui/styles';
+import { makeStyles, useTheme } from '@mui/styles';
 import Switch from '@mui/material/Switch';
+import DangerZoneBlock from '../common/dangerZone/DangerZoneBlock';
 import EEChip from '../common/entreprise_edition/EEChip';
 import EnterpriseEditionButton from '../common/entreprise_edition/EnterpriseEditionButton';
 import { SubscriptionFocus } from '../../../components/Subscription';
@@ -30,6 +31,7 @@ import SettingsAnalytics from './settings_analytics/SettingsAnalytics';
 import ItemBoolean from '../../../components/ItemBoolean';
 import { availableLanguage } from '../../../components/AppIntlProvider';
 import Breadcrumbs from '../../../components/Breadcrumbs';
+import useSensitiveModifications from '../../../utils/hooks/useSensitiveModifications';
 
 // Deprecated - https://mui.com/system/styles/basics/
 // Do not use it for new code.
@@ -41,10 +43,6 @@ const useStyles = makeStyles(() => ({
     margin: '10px 0 0 0',
     padding: 20,
     borderRadius: 4,
-  },
-  button: {
-    float: 'right',
-    marginTop: -30,
   },
 }));
 
@@ -199,6 +197,10 @@ const settingsValidation = (t) => Yup.object().shape({
 
 const Settings = () => {
   const classes = useStyles();
+  const theme = useTheme();
+
+  const { isSensitiveModificationEnabled, isAllowed } = useSensitiveModifications();
+
   const { t_i18n } = useFormatter();
   const handleChangeFocus = (id, name) => {
     commitMutation({
@@ -295,7 +297,7 @@ const Settings = () => {
             );
             return (
               <>
-                <Breadcrumbs variant="object" elements={[{ label: t_i18n('Settings') }, { label: t_i18n('Parameters'), current: true }]} />
+                <Breadcrumbs elements={[{ label: t_i18n('Settings') }, { label: t_i18n('Parameters'), current: true }]} />
                 <Grid container={true} spacing={3}>
                   <Grid item xs={6}>
                     <Typography variant="h4" gutterBottom={true}>
@@ -307,7 +309,8 @@ const Settings = () => {
                       className={'paper-for-grid'}
                     >
                       <Formik
-                        onSubmit={() => {}}
+                        onSubmit={() => {
+                        }}
                         enableReinitialize={true}
                         initialValues={initialValues}
                         validationSchema={settingsValidation(t_i18n)}
@@ -392,8 +395,7 @@ const Settings = () => {
                               fullWidth
                               containerstyle={fieldSpacingContainerStyle}
                               onFocus={(name) => handleChangeFocus(id, name)}
-                              onChange={(name, value) => handleSubmitField(id, name, value)
-                              }
+                              onChange={(name, value) => handleSubmitField(id, name, value)}
                               helpertext={
                                 <SubscriptionFocus
                                   context={editContext}
@@ -418,24 +420,38 @@ const Settings = () => {
                     <Typography variant="h4" gutterBottom={true} stye={{ float: 'left' }}>
                       {t_i18n('OpenCTI platform')}
                     </Typography>
-                    {!isEnterpriseEdition ? (
-                      <EnterpriseEditionButton inLine />
-                    ) : (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="primary"
-                        onClick={() => handleSubmitField(id, 'enterprise_edition', '')
-                        }
-                        classes={{ root: classes.button }}
-                      >
-                        {t_i18n('Disable Enterprise Edition')}
-                      </Button>
-                    )}
-                    <div className="clearfix" />
-                    <Paper classes={{ root: classes.paper }} className={'paper-for-grid'} variant="outlined">
+                    <div style={{ float: 'right', marginTop: isSensitiveModificationEnabled ? theme.spacing(-5) : theme.spacing(-4.5), position: 'relative' }}>
+                      {!isEnterpriseEdition ? (
+                        <EnterpriseEditionButton disabled={!isAllowed} inLine />
+                      ) : (
+                        <DangerZoneBlock
+                          sx={{
+                            root: { border: 'none', padding: 0, margin: 0 },
+                            title: { position: 'absolute', zIndex: 2, left: 4, top: 9, fontSize: 8 },
+                          }}
+                        >
+                          {({ disabled }) => (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color={isSensitiveModificationEnabled ? 'dangerZone' : 'primary'}
+                              onClick={() => handleSubmitField(id, 'enterprise_edition', '')}
+                              disabled={disabled}
+                            >
+                              {t_i18n('Disable Enterprise Edition')}
+                            </Button>
+                          )}
+                        </DangerZoneBlock>
+                      )}
+                    </div>
+                    <Paper
+                      classes={{ root: classes.paper }}
+                      className={'paper-for-grid'}
+                      variant="outlined"
+                    >
                       <Formik
-                        onSubmit={() => {}}
+                        onSubmit={() => {
+                        }}
                         enableReinitialize={true}
                         initialValues={initialValues}
                         validationSchema={settingsValidation(t_i18n)}
@@ -498,8 +514,8 @@ const Settings = () => {
                                   variant="large"
                                   label={
                                     // eslint-disable-next-line no-nested-ternary
-                                  !settings.platform_ai_enabled ? t_i18n('Disabled') : settings.platform_ai_has_token
-                                    ? settings.platform_ai_type : `${settings.platform_ai_type} - ${t_i18n('Missing token')}`}
+                                    !settings.platform_ai_enabled ? t_i18n('Disabled') : settings.platform_ai_has_token
+                                      ? settings.platform_ai_type : `${settings.platform_ai_type} - ${t_i18n('Missing token')}`}
                                   status={settings.platform_ai_enabled && settings.platform_ai_has_token}
                                   tooltip={settings.platform_ai_has_token ? `${settings.platform_ai_type} - ${settings.platform_ai_model}` : t_i18n('The token is missing in your platform configuration, please ask your Filigran representative to provide you with it or with on-premise deployment instructions. Your can open a support ticket to do so.')}
                                 />
@@ -564,7 +580,8 @@ const Settings = () => {
                     </Typography>
                     <Paper classes={{ root: classes.paper }} className={'paper-for-grid'} variant="outlined">
                       <Formik
-                        onSubmit={() => {}}
+                        onSubmit={() => {
+                        }}
                         enableReinitialize={true}
                         initialValues={initialValues}
                         validationSchema={settingsValidation(t_i18n)}
@@ -770,7 +787,8 @@ const Settings = () => {
                     </Typography>
                     <Paper classes={{ root: classes.paper }} className={'paper-for-grid'} variant="outlined">
                       <Formik
-                        onSubmit={() => {}}
+                        onSubmit={() => {
+                        }}
                         enableReinitialize={true}
                         initialValues={initialValues}
                         validationSchema={settingsValidation(t_i18n)}

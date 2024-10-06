@@ -133,21 +133,17 @@ const Campaigns = () => {
 
   const renderList = () => {
     const dataColumns = {
-      name: {
-        percentWidth: 15,
-      },
-      creator: {},
-      created: {
-        percentWidth: 10,
-      },
-      modified: {},
-      createdBy: {},
-      objectMarking: { percentWidth: 10 },
-      objectLabel: {},
+      name: { percentWidth: 15 },
+      creator: { percentWidth: 13 },
+      created: { percentWidth: 10 },
+      modified: {}, // 15
+      createdBy: {}, // 12
+      objectLabel: {}, // 15
       x_opencti_workflow_id: {
         label: 'Processing status',
         percentWidth: 10,
       },
+      objectMarking: { percentWidth: 10 },
     };
 
     const preloadedPaginationProps = {
@@ -176,9 +172,9 @@ const Campaigns = () => {
                   <ViewModuleOutlined fontSize="small" color="primary" />
                 </Tooltip>
               </ToggleButton>),
-              (<ToggleButton key="cards" value="lines" aria-label="lines">
+              (<ToggleButton key="lines" value="lines" aria-label="lines">
                 <Tooltip title={t_i18n('Lines view')}>
-                  <ViewListOutlined color="primary" fontSize="small" />
+                  <ViewListOutlined color="secondary" fontSize="small" />
                 </Tooltip>
               </ToggleButton>),
             ]}
@@ -195,7 +191,7 @@ const Campaigns = () => {
 
   return (
     <>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Threats') }, { label: t_i18n('Campaigns'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Threats') }, { label: t_i18n('Campaigns'), current: true }]} />
       {viewStorage.view !== 'lines' ? renderCards() : renderList()}
       {!isFABReplaced && (
         <Security needs={[KNOWLEDGE_KNUPDATE]}>

@@ -5,7 +5,7 @@ import { copyFile, deleteFile, deleteFiles, loadedFilesListing, storeFileConvert
 import type { AuthContext, AuthUser } from '../types/user';
 import type { BasicStoreBase, BasicStoreEntity } from '../types/store';
 import { logApp } from '../config/conf';
-import { allFilesForPaths } from '../modules/internal/document/document-domain';
+import { allFilesForPaths, EXPORT_STORAGE_PATH, IMPORT_STORAGE_PATH, SUPPORT_STORAGE_PATH } from '../modules/internal/document/document-domain';
 import { deleteWorkForSource } from '../domain/work';
 import { ENTITY_TYPE_SUPPORT_PACKAGE } from '../modules/support/support-types';
 
@@ -69,10 +69,6 @@ export const fileToReadStream = (localFilePath: string, localFileName: string, s
   return { createReadStream: () => Readable.from(buffer), filename: s3FileName, mimetype: mimeType };
 };
 
-export const SUPPORT_STORAGE_PATH = 'support';
-export const IMPORT_STORAGE_PATH = 'import';
-export const EXPORT_STORAGE_PATH = 'export';
-
 export const ALL_ROOT_FOLDERS = [SUPPORT_STORAGE_PATH, IMPORT_STORAGE_PATH, EXPORT_STORAGE_PATH];
 export const ALL_MERGEABLE_FOLDERS = [IMPORT_STORAGE_PATH, EXPORT_STORAGE_PATH];
 /**
@@ -82,7 +78,7 @@ export const ALL_MERGEABLE_FOLDERS = [IMPORT_STORAGE_PATH, EXPORT_STORAGE_PATH];
  * @param element
  */
 export const deleteAllObjectFiles = async (context: AuthContext, user: AuthUser, element: any) => {
-  logApp.info(`[FILE STORAGE] deleting all storage files for ${element.internal_id}`);
+  logApp.debug(`[FILE STORAGE] deleting all storage files for ${element.internal_id}`);
 
   let ids = [];
   if (element.entity_type === ENTITY_TYPE_SUPPORT_PACKAGE) {
@@ -158,7 +154,8 @@ export const moveAllFilesFromEntityToAnother = async (context: AuthContext, user
         const sourceFileS3Id = `${sourcePath}/${sourceFileDocument.name}`;
         const targetFileS3Id = `${targetPath}/${sourceFileDocument.name}`;
         logApp.info(`[FILE STORAGE] Moving from ${sourceFileS3Id} to: ${targetFileS3Id}`);
-        const newFile = await copyFile(sourceFileS3Id, targetFileS3Id, sourceFileDocument, targetEntity.internal_id);
+        const copyProps = { sourceId: sourceFileS3Id, targetId: targetFileS3Id, sourceDocument: sourceFileDocument, targetEntityId: targetEntity.internal_id };
+        const newFile = await copyFile(context, copyProps);
         if (newFile) {
           const newFileForEntity = storeFileConverter(user, newFile);
           updatedXOpenctiFiles.push(newFileForEntity);

@@ -1,11 +1,10 @@
 import React, { FunctionComponent } from 'react';
-import { ArrowDropDown, ArrowDropUp } from '@mui/icons-material';
+import { ArrowDropDown, ArrowDropUp, MoreVert } from '@mui/icons-material';
 import IconButton from '@mui/material/IconButton';
 import SimpleDraggrable from 'react-draggable';
 import makeStyles from '@mui/styles/makeStyles';
 import { createStyles } from '@mui/styles';
 import { Theme as MuiTheme } from '@mui/material/styles/createTheme';
-import { UnfoldMoreIcon } from 'filigran-icon';
 import Tooltip from '@mui/material/Tooltip';
 import { useDataTableContext } from '../dataTableUtils';
 import { DataTableColumn, DataTableHeaderProps, DataTableVariant, LocalStorageColumns } from '../dataTableTypes';
@@ -20,47 +19,52 @@ const useStyles = makeStyles<MuiTheme, { column: DataTableColumn }>((theme) => c
     display: 'flex',
     width: ({ column }) => `calc(var(--header-${column?.id}-size) * 1px)`,
     fontWeight: 'bold',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    height: 40,
     '& .react-draggable-dragging': {
-      background: theme.palette.secondary.main,
+      backgroundColor: theme.palette.primary.main,
     },
     '&:hover': {
       '& $draggable': {
-        background: theme.palette.secondary.main,
+        backgroundColor: theme.palette.primary.main,
+      },
+      '& $icon': {
+        visibility: 'visible',
       },
     },
   },
   headerAligner: {
-    paddingLeft: 8,
-    paddingRight: 8,
+    paddingLeft: theme.spacing(1),
+    paddingRight: theme.spacing(1),
     display: 'flex',
     alignItems: 'center',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
+    flexGrow: 1,
     cursor: ({ column: { isSortable } }) => (isSortable ? 'pointer' : 'unset'),
   },
-  aligner: { flexGrow: 1 },
   draggable: {
     position: 'absolute',
-    top: 0,
+    top: '8px',
     right: 3,
-    height: '100%',
-    width: 4,
+    height: theme.spacing(4),
+    width: 10,
+    paddingLeft: 4,
+    paddingRight: 4,
+    backgroundClip: 'content-box',
     borderRadius: 2,
     cursor: 'col-resize',
-    userSelect: 'none',
-    touchAction: 'none',
-    zIndex: 999,
+  },
+  icon: {
+    visibility: 'hidden',
   },
 }));
 
 const DataTableHeader: FunctionComponent<DataTableHeaderProps> = ({
   column,
   setAnchorEl,
+  isActive,
   setActiveColumn,
-  setLocalStorageColumns,
   containerRef,
   sortBy,
   orderAsc,
@@ -69,12 +73,16 @@ const DataTableHeader: FunctionComponent<DataTableHeaderProps> = ({
 
   const {
     columns,
-    setColumns,
+    actions,
     availableFilterKeys,
     onSort,
     variant,
     formatter: { t_i18n },
+    useDataTableLocalStorage,
+    storageKey,
   } = useDataTableContext();
+
+  const [_, setLocalStorageColumns] = useDataTableLocalStorage<LocalStorageColumns>(`${storageKey}_columns`, {}, true);
 
   return (
     <div
@@ -94,7 +102,9 @@ const DataTableHeader: FunctionComponent<DataTableHeaderProps> = ({
           }
         }}
       >
-        <Tooltip title={t_i18n(column.label)}>{t_i18n(column.label)}</Tooltip>
+        <Tooltip title={t_i18n(column.label)}>
+          <span style={{ fontSize: '12px' }}>{t_i18n(column.label).toUpperCase()}</span>
+        </Tooltip>
         {sortBy && (orderAsc ? <ArrowDropUp /> : <ArrowDropDown />)}
       </div>
       <>
@@ -102,9 +112,13 @@ const DataTableHeader: FunctionComponent<DataTableHeaderProps> = ({
           <>
             <IconButton
               disableRipple
+              className={classes.icon}
               onClick={(e) => {
                 setActiveColumn(column);
                 setAnchorEl(e.currentTarget);
+              }}
+              style={{
+                visibility: isActive ? 'visible' : undefined,
               }}
               sx={{
                 marginRight: 1,
@@ -115,7 +129,7 @@ const DataTableHeader: FunctionComponent<DataTableHeaderProps> = ({
                 },
               }}
             >
-              <UnfoldMoreIcon />
+              <MoreVert />
             </IconButton>
           </>
         )}
@@ -125,11 +139,6 @@ const DataTableHeader: FunctionComponent<DataTableHeaderProps> = ({
             position={{ x: 3, y: 0 }}
             axis="x"
             onStop={(e, { lastX }) => {
-              const eventTarget = (e?.target as HTMLDivElement);
-              const currentClasses = classes.headerContainer.split(' ');
-              if (!containerRef || !(currentClasses.some((c) => eventTarget?.classList.contains(c)) || eventTarget?.classList.contains('react-draggable-dragging'))) {
-                return;
-              }
               const newSize = (column?.size ?? 0) + lastX;
 
               const effectiveColumns = columns.filter(({ id }) => !['select', 'navigate'].includes(id));
@@ -142,25 +151,22 @@ const DataTableHeader: FunctionComponent<DataTableHeaderProps> = ({
               currentCol.size = newSize;
 
               const startsWithSelect = columns.at(0)?.id === 'select';
-              const endsWithNavigate = columns.at(-1)?.id === 'navigate';
-              let storedSize = SELECT_COLUMN_SIZE;
+              const endsWithTechnical = columns.at(-1)?.id === 'navigate' || actions;
+              let storedSize = endsWithTechnical ? SELECT_COLUMN_SIZE : 0;
               if (startsWithSelect) {
                 storedSize += SELECT_COLUMN_SIZE;
               }
 
-              const clientWidth = (containerRef.current?.clientWidth ?? 0) - storedSize - 10; // Scrollbar size to prevent alignment issues
+              const clientWidth = (containerRef?.current?.clientWidth ?? 0) - storedSize - 12; // Scrollbar size to prevent alignment issues
 
               const otherColumn = effectiveColumns[otherColIndex];
               const clientDiff = clientWidth - effectiveColumns.reduce((acc, col) => acc + (col.size ?? 0), 0);
 
               if (clientDiff > 0) {
-                const percentWidth = (100 * currentCol.size) / currentSize;
                 if (otherColumn) {
                   const otherColumnNewSize = (otherColumn.size ?? 0) - lastX - currentSize + clientWidth;
                   otherColumn.size = otherColumnNewSize;
-                  otherColumn.percentWidth = (otherColumnNewSize * 100) / clientWidth;
                 }
-                currentCol.percentWidth = percentWidth;
               }
 
               setLocalStorageColumns((curr: LocalStorageColumns) => ({
@@ -168,11 +174,6 @@ const DataTableHeader: FunctionComponent<DataTableHeaderProps> = ({
                 [column.id]: { ...curr[column.id], size: newSize },
                 [otherColumn.id]: { ...curr[otherColumn.id], ...otherColumn },
               }));
-              const newColumns = [
-                ...(startsWithSelect ? [columns.at(0) as DataTableColumn] : []),
-                ...effectiveColumns,
-                ...(endsWithNavigate ? [columns.at(-1) as DataTableColumn] : [])];
-              setColumns(newColumns);
             }}
           >
             <div

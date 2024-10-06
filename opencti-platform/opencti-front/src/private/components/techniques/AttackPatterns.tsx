@@ -81,6 +81,7 @@ const attackPatternsLinesFragment = graphql`
     ) @connection(key: "Pagination_attackPatterns") {
       edges {
         node {
+          id
           name
           ...AttackPatternsLine_node
         }
@@ -145,7 +146,7 @@ const AttackPatterns = () => {
 
   return (
     <>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Techniques') }, { label: t_i18n('Attack patterns'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Techniques') }, { label: t_i18n('Attack patterns'), current: true }]} />
       {queryRef && (
         <DataTable
           dataColumns={dataColumns}
@@ -158,14 +159,14 @@ const AttackPatterns = () => {
           exportContext={{ entity_type: 'Attack-Pattern' }}
           createButton={isFABReplaced && (
             <Security needs={[KNOWLEDGE_KNUPDATE]}>
-              <AttackPatternCreation paginationOptions={paginationOptions} />
+              <AttackPatternCreation paginationOptions={queryPaginationOptions} />
             </Security>
           )}
         />
       )}
       {!isFABReplaced && (
         <Security needs={[KNOWLEDGE_KNUPDATE]}>
-          <AttackPatternCreation paginationOptions={paginationOptions} />
+          <AttackPatternCreation paginationOptions={queryPaginationOptions} />
         </Security>
       )}
     </>

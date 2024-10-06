@@ -85,10 +85,10 @@ const useStyles = makeStyles<Theme>((theme) => ({
     zIndex: 1001,
   },
   container: {
-    padding: '15px',
-    paddingBottom: 0,
-    flex: 1,
+    padding: theme.spacing(2),
     width: '100%',
+    height: '100%',
+    maxHeight: '100%',
   },
 }));
 
@@ -140,6 +140,9 @@ export const stixCoreRelationshipCreationFromEntityStixCoreObjectsLinesFragment 
           standard_id
           entity_type
           created_at
+          representative {
+            main
+          }
           createdBy {
             ... on Identity {
               name
@@ -729,7 +732,7 @@ const StixCoreRelationshipCreationFromEntity: FunctionComponent<StixCoreRelation
     const newTargetEntities: TargetEntity[] = Object.values(selectedElements).map((item) => ({
       id: item.id,
       entity_type: item.entity_type ?? '',
-      name: item.name ?? item.observable_value ?? '',
+      name: item.name ?? item.observable_value ?? item.representative?.main.toString() ?? '',
     }));
     setTargetEntities(newTargetEntities);
   }, [selectedElements]);
@@ -815,10 +818,12 @@ const StixCoreRelationshipCreationFromEntity: FunctionComponent<StixCoreRelation
             {({ platformModuleHelpers }) => (
               <>
                 {queryRef && (
-                  <div style={{ height: '100%' }} ref={setTableRootRef}>
+                  <div style={{ height: '98%' }} ref={setTableRootRef}>
                     <DataTable
                       disableToolBar
                       disableSelectAll
+                      disableNavigation
+                      selectOnLineClick
                       rootRef={tableRootRef ?? undefined}
                       variant={DataTableVariant.inline}
                       dataColumns={buildColumns(platformModuleHelpers)}
@@ -831,6 +836,7 @@ const StixCoreRelationshipCreationFromEntity: FunctionComponent<StixCoreRelation
                       entityTypes={virtualEntityTypes}
                       additionalHeaderButtons={[(
                         <BulkRelationDialogContainer
+                          targetObjectTypes={[...targetStixDomainObjectTypes, ...targetStixCyberObservableTypes]}
                           paginationOptions={searchPaginationOptions}
                           paginationKey="Pagination_stixCoreObjects"
                           key="BulkRelationDialogContainer"

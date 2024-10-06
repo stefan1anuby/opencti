@@ -29,6 +29,8 @@ import { useIsEnforceReference } from '../../../../utils/hooks/useEntitySettings
 import useGranted, { KNOWLEDGE_KNUPDATE_KNBYPASSREFERENCE, KNOWLEDGE_KNUPDATE } from '../../../../utils/hooks/useGranted';
 import { getCurrentTab, getPaddingRight } from '../../../../utils/utils';
 import GroupingEdition from './GroupingEdition';
+import { useGetCurrentUserAccessRight } from '../../../../utils/authorizedMembers';
+import useHelper from '../../../../utils/hooks/useHelper';
 
 const subscription = graphql`
   subscription RootGroupingSubscription($id: ID!) {
@@ -54,6 +56,7 @@ const groupingQuery = graphql`
       standard_id
       entity_type
       name
+      currentUserAccessRight
       ...Grouping_grouping
       ...GroupingDetails_grouping
       ...GroupingKnowledge_grouping
@@ -87,6 +90,8 @@ const RootGrouping = () => {
     [groupingId],
   );
   const location = useLocation();
+  const { isFeatureEnable } = useHelper();
+  const isFABReplaced = isFeatureEnable('FAB_REPLACEMENT');
   const enableReferences = useIsEnforceReference('Grouping') && !useGranted([KNOWLEDGE_KNUPDATE_KNBYPASSREFERENCE]);
   const { t_i18n } = useFormatter();
   useSubscription(subConfig);
@@ -102,9 +107,10 @@ const RootGrouping = () => {
               const { grouping } = props;
               const isOverview = location.pathname === `/dashboard/analyses/groupings/${grouping.id}`;
               const paddingRight = getPaddingRight(location.pathname, grouping.id, '/dashboard/analyses/groupings', false);
+              const currentAccessRight = useGetCurrentUserAccessRight(grouping.currentUserAccessRight);
               return (
                 <div style={{ paddingRight }}>
-                  <Breadcrumbs variant="object" elements={[
+                  <Breadcrumbs elements={[
                     { label: t_i18n('Analyses') },
                     { label: t_i18n('Groupings'), link: '/dashboard/analyses/groupings' },
                     { label: grouping.name, current: true },
@@ -112,9 +118,11 @@ const RootGrouping = () => {
                   />
                   <ContainerHeader
                     container={grouping}
-                    PopoverComponent={<GroupingPopover />}
-                    EditComponent={(
-                      <Security needs={[KNOWLEDGE_KNUPDATE]}>
+                    PopoverComponent={
+                      <GroupingPopover id={groupingId} />
+                    }
+                    EditComponent={isFABReplaced && (
+                      <Security needs={[KNOWLEDGE_KNUPDATE]} hasAccess={currentAccessRight.canEdit}>
                         <GroupingEdition groupingId={grouping.id} />
                       </Security>
                     )}

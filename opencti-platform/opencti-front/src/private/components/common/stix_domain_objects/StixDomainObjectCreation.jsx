@@ -50,7 +50,6 @@ import useGranted, { KNOWLEDGE_KNUPDATE } from '../../../../utils/hooks/useGrant
 import { CaseRfiCreationForm } from '../../cases/case_rfis/CaseRfiCreation';
 import { CaseRftCreationForm } from '../../cases/case_rfts/CaseRftCreation';
 import { ThreatActorIndividualCreationForm } from '../../threats/threat_actors_individual/ThreatActorIndividualCreation';
-import useHelper from '../../../../utils/hooks/useHelper';
 import BulkTextModalButton from '../../../../components/fields/BulkTextField/BulkTextModalButton';
 
 export const stixDomainObjectCreationAllTypesQuery = graphql`
@@ -203,7 +202,6 @@ const StixDomainPanel = ({
   defaultMarkingDefinitions,
   isFromBulkRelation,
 }) => {
-  const { isFeatureEnable } = useHelper();
   const [bulkOpen, setBulkOpen] = useState(false);
   const { t_i18n } = useFormatter();
   const queryData = usePreloadedQuery(
@@ -215,7 +213,8 @@ const StixDomainPanel = ({
     queryData,
     stixDomainObjectTypes,
   );
-  const [type, setType] = useState(availableEntityTypes.at(0).value);
+  const selectedType = availableEntityTypes.find((item) => item.value === stixDomainObjectTypes) ?? availableEntityTypes.at(0);
+  const [type, setType] = useState(selectedType.value);
   const baseCreatedBy = defaultCreatedBy
     ? { value: defaultCreatedBy.id, label: defaultCreatedBy.name }
     : undefined;
@@ -753,7 +752,7 @@ const StixDomainPanel = ({
   };
 
   const renderUnavailableBulkMessage = () => {
-    if (isFeatureEnable('BULK_ENTITIES') && isFromBulkRelation && !BULK_ENTITIES.includes(type)) {
+    if (isFromBulkRelation && !BULK_ENTITIES.includes(type)) {
       return (
         <Alert
           severity="info"
@@ -776,7 +775,7 @@ const StixDomainPanel = ({
     >
       <DialogTitle style={{ display: 'flex' }}>
         {t_i18n('Create an entity')}
-        {isFeatureEnable('BULK_ENTITIES') && !isFromBulkRelation && (
+        {!isFromBulkRelation && (
           <BulkTextModalButton
             onClick={() => setBulkOpen(true)}
             sx={{ marginRight: 0 }}

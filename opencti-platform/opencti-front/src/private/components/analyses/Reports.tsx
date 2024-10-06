@@ -182,7 +182,6 @@ const Reports: FunctionComponent = () => {
   const isRuntimeSort = isRuntimeFieldEnable() ?? false;
   const dataColumns: DataTableProps['dataColumns'] = {
     name: {
-      label: 'Title',
       percentWidth: 25,
       isSortable: true,
     },
@@ -205,7 +204,7 @@ const Reports: FunctionComponent = () => {
   };
   return (
     <span data-testid="report-page">
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Analyses') }, { label: t_i18n('Reports'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Analyses') }, { label: t_i18n('Reports'), current: true }]} />
       {queryRef && (
         <DataTable
           dataColumns={dataColumns}

@@ -3,43 +3,39 @@ import { listEntities, storeLoadById } from '../database/middleware-loader';
 import { ENTITY_TYPE_RETENTION_RULE } from '../schema/internalObject';
 import { generateInternalId, generateStandardId } from '../schema/identifier';
 import { elIndex, elPaginate } from '../database/engine';
-import { INDEX_INTERNAL_OBJECTS, READ_DATA_INDICES_WITHOUT_INFERRED } from '../database/utils';
+import { INDEX_INTERNAL_OBJECTS, READ_STIX_INDICES } from '../database/utils';
 import { UnsupportedError } from '../config/errors';
 import { utcDate } from '../utils/format';
 import { RETENTION_MANAGER_USER } from '../utils/access';
 import { convertFiltersToQueryOptions } from '../utils/filtering/filtering-resolution';
 import { publishUserAction } from '../listener/UserActionListener';
-import { paginatedForPathWithEnrichment } from '../modules/internal/document/document-domain';
+import { DELETABLE_FILE_STATUSES, paginatedForPathWithEnrichment } from '../modules/internal/document/document-domain';
 import { logApp } from '../config/conf';
 
 export const checkRetentionRule = async (context, input) => {
-  const { filters, max_retention: maxDays, scope } = input;
-  const jsonFilters = filters ? JSON.parse(filters) : null;
-  const before = utcDate().subtract(maxDays, 'days');
-  const queryOptions = await convertFiltersToQueryOptions(jsonFilters, { before });
+  const { filters, max_retention: maxDays, scope, retention_unit: unit } = input;
+  const before = utcDate().subtract(maxDays, unit ?? 'days');
   let result = [];
+  // knowledge rule
   if (scope === 'knowledge') {
-    result = await elPaginate(context, RETENTION_MANAGER_USER, READ_DATA_INDICES_WITHOUT_INFERRED, queryOptions);
-  } else if (scope === 'file') {
-    result = await paginatedForPathWithEnrichment(
-      context,
-      RETENTION_MANAGER_USER,
-      'import/global',
-      undefined,
-      { notModifiedSince: before.toISOString() }
-    );
+    const jsonFilters = filters ? JSON.parse(filters) : null;
+    const queryOptions = await convertFiltersToQueryOptions(jsonFilters, { before });
+    result = await elPaginate(context, RETENTION_MANAGER_USER, READ_STIX_INDICES, { ...queryOptions, first: 1 });
+    return result.pageInfo.globalCount;
+  }
+  // file and workbench rules
+  if (scope === 'file') {
+    result = await paginatedForPathWithEnrichment(context, RETENTION_MANAGER_USER, 'import/global', undefined, { notModifiedSince: before.toISOString() });
   } else if (scope === 'workbench') {
-    result = await paginatedForPathWithEnrichment(
-      context,
-      RETENTION_MANAGER_USER,
-      'import/pending',
-      undefined,
-      { notModifiedSince: before.toISOString() }
-    );
+    result = await paginatedForPathWithEnrichment(context, RETENTION_MANAGER_USER, 'import/pending', undefined, { notModifiedSince: before.toISOString() });
   } else {
     logApp.error(`[Retention manager] Scope ${scope} not existing for Retention Rule.`);
   }
-  return result.pageInfo.globalCount;
+  if (scope === 'file' || scope === 'workbench') { // don't delete progress files or files with works in progress
+    result.edges = result.edges.filter((e) => DELETABLE_FILE_STATUSES.includes(e.node.uploadStatus)
+        && (e.node.works ?? []).every((work) => !work || DELETABLE_FILE_STATUSES.includes(work?.status)));
+  }
+  return result.edges.length;
 };
 
 // input { name, filters }

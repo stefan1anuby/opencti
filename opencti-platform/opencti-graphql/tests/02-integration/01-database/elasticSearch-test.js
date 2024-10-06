@@ -13,26 +13,24 @@ import {
   elIndex,
   elIndexElements,
   elIndexExists,
+  elIndexGetAlias,
   elLoadById,
   elPaginate,
   elRebuildRelation,
+  ES_INDEX_PATTERN_SUFFIX,
   ES_MAX_PAGINATION,
   searchEngineInit
 } from '../../../src/database/engine';
 import {
+  DEPRECATED_INDICES,
   ES_INDEX_PREFIX,
+  INDEX_INTERNAL_OBJECTS,
   READ_DATA_INDICES,
   READ_ENTITIES_INDICES,
   READ_INDEX_INTERNAL_OBJECTS,
-  READ_INDEX_INTERNAL_RELATIONSHIPS,
-  READ_INDEX_STIX_CORE_RELATIONSHIPS,
-  READ_INDEX_STIX_CYBER_OBSERVABLE_RELATIONSHIPS,
-  READ_INDEX_STIX_CYBER_OBSERVABLES,
   READ_INDEX_STIX_DOMAIN_OBJECTS,
-  READ_INDEX_STIX_META_OBJECTS,
-  READ_INDEX_STIX_META_RELATIONSHIPS,
-  READ_INDEX_STIX_SIGHTING_RELATIONSHIPS,
-  READ_RELATIONSHIPS_INDICES
+  READ_RELATIONSHIPS_INDICES,
+  WRITE_PLATFORM_INDICES
 } from '../../../src/database/utils';
 import { utcDate } from '../../../src/utils/format';
 import { ADMIN_USER, buildStandardUser, testContext, TESTING_GROUPS, TESTING_ROLES, TESTING_USERS } from '../../utils/testQuery';
@@ -50,17 +48,27 @@ const elWhiteUser = async () => {
 };
 
 describe('Elasticsearch configuration test', () => {
-  it('should configuration correct', () => {
+  it('should configuration correct', async () => {
     expect(searchEngineInit()).resolves.toBeTruthy();
-    expect(elIndexExists(READ_INDEX_INTERNAL_OBJECTS)).toBeTruthy();
-    expect(elIndexExists(READ_INDEX_STIX_SIGHTING_RELATIONSHIPS)).toBeTruthy();
-    expect(elIndexExists(READ_INDEX_STIX_CORE_RELATIONSHIPS)).toBeTruthy();
-    expect(elIndexExists(READ_INDEX_STIX_DOMAIN_OBJECTS)).toBeTruthy();
-    expect(elIndexExists(READ_INDEX_STIX_META_OBJECTS)).toBeTruthy();
-    expect(elIndexExists(READ_INDEX_STIX_META_RELATIONSHIPS)).toBeTruthy();
-    expect(elIndexExists(READ_INDEX_STIX_CYBER_OBSERVABLE_RELATIONSHIPS)).toBeTruthy();
-    expect(elIndexExists(READ_INDEX_INTERNAL_RELATIONSHIPS)).toBeTruthy();
-    expect(elIndexExists(READ_INDEX_STIX_CYBER_OBSERVABLES)).toBeTruthy();
+    // check all WRITE_PLATFORM_INDICES creation
+    for (let i = 0; i < WRITE_PLATFORM_INDICES.length; i += 1) {
+      const indexName = WRITE_PLATFORM_INDICES[i];
+      const indexExists = await elIndexExists(indexName);
+      expect(indexExists).toBeTruthy();
+    }
+    for (let i = 0; i < DEPRECATED_INDICES.length; i += 1) {
+      const indexName = DEPRECATED_INDICES[i];
+      expect(await elIndexExists(indexName)).toBeFalsy();
+    }
+  });
+  it('should get internal object index with alias', async () => {
+    const internalObjectsIndexAlias = await elIndexGetAlias(READ_INDEX_INTERNAL_OBJECTS);
+    // internalObjectsIndexAlias = {"test_internal_objects-000001":{"aliases":{"test_internal_objects":{}}}}
+    const numberOfIndices = Object.keys(internalObjectsIndexAlias).length;
+    expect(internalObjectsIndexAlias).toBeDefined();
+    expect(numberOfIndices).toEqual(1);
+    expect(Object.entries(internalObjectsIndexAlias)[0][0]).toEqual(`${INDEX_INTERNAL_OBJECTS}${ES_INDEX_PATTERN_SUFFIX}`);
+    expect(Object.entries(internalObjectsIndexAlias)[0][1].aliases).toEqual({ [INDEX_INTERNAL_OBJECTS]: {} });
   });
 });
 
@@ -396,7 +404,7 @@ describe('Elasticsearch pagination', () => {
   it('should entity paginate everything', async () => {
     const data = await elPaginate(testContext, ADMIN_USER, READ_ENTITIES_INDICES, { first: ES_MAX_PAGINATION });
     expect(data).not.toBeNull();
-    expect(data.edges.length).toEqual(537);
+    expect(data.edges.length).toEqual(520 + TESTING_USERS.length + TESTING_ROLES.length + TESTING_GROUPS.length);
     const filterBaseTypes = R.uniq(R.map((e) => e.node.base_type, data.edges));
     expect(filterBaseTypes.length).toEqual(1);
     expect(R.head(filterBaseTypes)).toEqual('ENTITY');
@@ -492,7 +500,7 @@ describe('Elasticsearch pagination', () => {
       filterGroups: [],
     };
     const data = await elPaginate(testContext, ADMIN_USER, READ_ENTITIES_INDICES, { filters, first: ES_MAX_PAGINATION });
-    expect(data.edges.length).toEqual(526);
+    expect(data.edges.length).toEqual(527);
   });
   it('should entity paginate with field exist filter', async () => {
     const filters = {
@@ -573,7 +581,7 @@ describe('Elasticsearch pagination', () => {
       orderMode: 'asc',
       first: ES_MAX_PAGINATION
     });
-    expect(data.edges.length).toEqual(519 + TESTING_USERS.length + TESTING_ROLES.length + TESTING_GROUPS.length);
+    expect(data.edges.length).toEqual(520 + TESTING_USERS.length + TESTING_ROLES.length + TESTING_GROUPS.length);
     const createdDates = R.map((e) => e.node.created, data.edges);
     let previousCreatedDate = null;
     for (let index = 0; index < createdDates.length; index += 1) {
@@ -624,7 +632,7 @@ describe('Elasticsearch pagination', () => {
       orderBy: 'group_confidence_level',
       orderMode: 'desc',
     });
-    expect(data.edges.length).toEqual(TESTING_GROUPS.length + 2); // there are 2 built-in groups in initialization
+    expect(data.edges.length).toEqual(TESTING_GROUPS.length + 3); // there are 3 built-in groups in initialization
 
     let previousConfidenceLevel = 100;
     for (let i = 0; i < data.edges.length; i += 1) {
@@ -651,7 +659,7 @@ describe('Elasticsearch pagination', () => {
       orderBy: 'group_confidence_level',
       orderMode: 'asc',
     });
-    expect(data.edges.length).toEqual(TESTING_GROUPS.length + 2); // there are 2 built-in groups in initialization
+    expect(data.edges.length).toEqual(TESTING_GROUPS.length + 3); // there are 3 built-in groups in initialization
 
     let previousConfidenceLevel = 0;
     for (let i = 0; i < data.edges.length; i += 1) {
@@ -671,7 +679,7 @@ describe('Elasticsearch pagination', () => {
     let data = await elPaginate(testContext, ADMIN_USER, READ_RELATIONSHIPS_INDICES, { includeAuthorities: true });
     expect(data).not.toBeNull();
     const groupByIndices = R.groupBy((e) => e.node._index, data.edges);
-    expect(groupByIndices[`${ES_INDEX_PREFIX}_internal_relationships-000001`].length).toEqual(93);
+    expect(groupByIndices[`${ES_INDEX_PREFIX}_internal_relationships-000001`].length).toEqual(106);
     expect(groupByIndices[`${ES_INDEX_PREFIX}_stix_core_relationships-000001`].length).toEqual(24);
     expect(groupByIndices[`${ES_INDEX_PREFIX}_stix_meta_relationships-000001`].length).toEqual(129);
     expect(groupByIndices[`${ES_INDEX_PREFIX}_stix_sighting_relationships-000001`].length).toEqual(2);
@@ -683,14 +691,14 @@ describe('Elasticsearch pagination', () => {
     expect(metaByEntityType['external-reference'].length).toEqual(7);
     expect(metaByEntityType['object-marking'].length).toEqual(28);
     expect(metaByEntityType['kill-chain-phase'].length).toEqual(3);
-    expect(data.edges.length).toEqual(248);
+    expect(data.edges.length).toEqual(261);
     let filterBaseTypes = R.uniq(R.map((e) => e.node.base_type, data.edges));
     expect(filterBaseTypes.length).toEqual(1);
     expect(R.head(filterBaseTypes)).toEqual('RELATION');
     // Same query with no pagination
     data = await elPaginate(testContext, ADMIN_USER, READ_RELATIONSHIPS_INDICES, { connectionFormat: false });
     expect(data).not.toBeNull();
-    expect(data.length).toEqual(248);
+    expect(data.length).toEqual(261);
     filterBaseTypes = R.uniq(R.map((e) => e.base_type, data));
     expect(filterBaseTypes.length).toEqual(1);
     expect(R.head(filterBaseTypes)).toEqual('RELATION');

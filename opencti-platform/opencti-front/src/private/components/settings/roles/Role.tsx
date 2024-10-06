@@ -24,6 +24,7 @@ import { groupsSearchQuery } from '../Groups';
 import { GroupsSearchQuery } from '../__generated__/GroupsSearchQuery.graphql';
 import ItemIcon from '../../../../components/ItemIcon';
 import ExpandableMarkdown from '../../../../components/ExpandableMarkdown';
+import useSensitiveModifications from '../../../../utils/hooks/useSensitiveModifications';
 
 // Deprecated - https://mui.com/system/styles/basics/
 // Do not use it for new code.
@@ -52,6 +53,7 @@ const useStyles = makeStyles(() => ({
 const roleFragment = graphql`
   fragment Role_role on Role {
     id
+    standard_id
     name
     description
     created_at
@@ -61,6 +63,7 @@ const roleFragment = graphql`
       name
       description
     }
+    can_manage_sensitive_config
   }
 `;
 
@@ -72,6 +75,7 @@ const Role = ({
   groupsQueryRef: PreloadedQuery<GroupsSearchQuery>;
 }) => {
   const classes = useStyles();
+
   const { t_i18n } = useFormatter();
   const groupsData = usePreloadedQuery(groupsSearchQuery, groupsQueryRef);
   const groupNodes = (role: Role_role$data) => {
@@ -82,6 +86,7 @@ const Role = ({
       .filter((n) => n !== null && n !== undefined);
   };
   const role = useFragment<Role_role$key>(roleFragment, roleData);
+  const { isAllowed, isSensitive } = useSensitiveModifications(role.standard_id);
   const queryRef = useQueryLoading<RoleEditionCapabilitiesLinesSearchQuery>(
     roleEditionCapabilitiesLinesSearch,
   );
@@ -97,9 +102,9 @@ const Role = ({
           {role.name}
         </Typography>
         <div className={classes.popover}>
-          <RolePopover roleId={role.id} />
+          <RolePopover roleId={role.id}disabled={!isAllowed} isSensitive={isSensitive} />
         </div>
-        <div className="clearfix" />
+        <div className="clearfix"/>
       </div>
       <Grid
         container={true}
@@ -146,7 +151,7 @@ const Role = ({
             </Grid>
           </Paper>
         </Grid>
-        <Grid item xs={6} >
+        <Grid item xs={6}>
           <Typography variant="h4" gutterBottom={true}>
             {t_i18n('Capabilities')}
           </Typography>
@@ -171,6 +176,8 @@ const Role = ({
             return (
               <RoleEdition
                 role={props.role}
+                isSensitive={isSensitive}
+                disabled={!isAllowed}
               />
             );
           }

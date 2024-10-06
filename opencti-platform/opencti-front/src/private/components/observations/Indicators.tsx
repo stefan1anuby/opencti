@@ -1,6 +1,7 @@
 import React from 'react';
 import useHelper from 'src/utils/hooks/useHelper';
 import { graphql } from 'react-relay';
+import Tooltip from '@mui/material/Tooltip';
 import { IndicatorsLinesPaginationQuery, IndicatorsLinesPaginationQuery$variables } from '@components/observations/__generated__/IndicatorsLinesPaginationQuery.graphql';
 import { IndicatorsLines_data$data } from '@components/observations/__generated__/IndicatorsLines_data.graphql';
 import IndicatorCreation from './indicators/IndicatorCreation';
@@ -14,6 +15,7 @@ import { useFormatter } from '../../../components/i18n';
 import Breadcrumbs from '../../../components/Breadcrumbs';
 import { UsePreloadedPaginationFragment } from '../../../utils/hooks/usePreloadedPaginationFragment';
 import DataTable from '../../../components/dataGrid/DataTable';
+import { DataTableProps } from '../../../components/dataGrid/dataTableTypes';
 
 const LOCAL_STORAGE_KEY = 'indicators-list';
 
@@ -150,21 +152,27 @@ const Indicators = () => {
     queryPaginationOptions,
   );
 
-  const dataColumns = {
-    pattern_type: {},
-    name: { percentWidth: 21 },
+  const dataColumns: DataTableProps['dataColumns'] = {
+    pattern_type: {
+      percentWidth: 11,
+    },
+    name: {
+      percentWidth: 24,
+    },
     createdBy: {
       isSortable: isRuntimeSort ?? false,
+      percentWidth: 12,
     },
     creator: {
       isSortable: isRuntimeSort ?? false,
+      percentWidth: 12,
     },
-    objectLabel: {},
-    created: { percentWidth: 10 },
-    valid_until: {
-      label: 'Valid until',
-      percentWidth: 10,
-      isSortable: true,
+    objectLabel: {
+      percentWidth: 15,
+    },
+    created: {
+      percentWidth: 15,
+      render: ({ created }, { nsdt }) => <Tooltip title={nsdt(created)}>{nsdt(created)}</Tooltip>,
     },
     objectMarking: {
       percentWidth: 10,
@@ -182,7 +190,7 @@ const Indicators = () => {
 
   return (
     <>
-      <Breadcrumbs variant="list" elements={[{ label: t_i18n('Observations') }, { label: t_i18n('Indicators'), current: true }]} />
+      <Breadcrumbs elements={[{ label: t_i18n('Observations') }, { label: t_i18n('Indicators'), current: true }]} />
       {queryRef && (
         <DataTable
           dataColumns={dataColumns}

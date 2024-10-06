@@ -8,6 +8,7 @@ import { GraphQLSubscriptionConfig } from 'relay-runtime';
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import useForceUpdate from '@components/common/bulk/useForceUpdate';
 import StixCoreObjectContentRoot from '../../common/stix_core_objects/StixCoreObjectContentRoot';
 import AdministrativeArea from './AdministrativeArea';
 import AdministrativeAreaKnowledge from './AdministrativeAreaKnowledge';
@@ -29,6 +30,7 @@ import { getCurrentTab, getPaddingRight } from '../../../../utils/utils';
 import AdministrativeAreaEdition from './AdministrativeAreaEdition';
 import Security from '../../../../utils/Security';
 import { KNOWLEDGE_KNUPDATE } from '../../../../utils/hooks/useGranted';
+import useHelper from '../../../../utils/hooks/useHelper';
 
 const subscription = graphql`
   subscription RootAdministrativeAreasSubscription($id: ID!) {
@@ -85,8 +87,11 @@ const RootAdministrativeAreaComponent = ({ queryRef, administrativeAreaId }) => 
   );
   useSubscription(subConfig);
   const location = useLocation();
+  const { isFeatureEnable } = useHelper();
+  const isFABReplaced = isFeatureEnable('FAB_REPLACEMENT');
   const { t_i18n } = useFormatter();
   const data = usePreloadedQuery(administrativeAreaQuery, queryRef);
+  const { forceUpdate } = useForceUpdate();
   const { administrativeArea, connectorsForImport, connectorsForExport } = data;
   const link = `/dashboard/locations/administrative_areas/${administrativeAreaId}/knowledge`;
   const paddingRight = getPaddingRight(location.pathname, administrativeArea?.id, '/dashboard/locations/administrative_areas');
@@ -121,7 +126,7 @@ const RootAdministrativeAreaComponent = ({ queryRef, administrativeAreaId }) => 
             />
           </Routes>
           <div style={{ paddingRight }}>
-            <Breadcrumbs variant="object" elements={[
+            <Breadcrumbs elements={[
               { label: t_i18n('Locations') },
               { label: t_i18n('Administrative areas'), link: '/dashboard/locations/administrative_areas' },
               { label: administrativeArea.name, current: true },
@@ -134,7 +139,7 @@ const RootAdministrativeAreaComponent = ({ queryRef, administrativeAreaId }) => 
               PopoverComponent={
                 <AdministrativeAreaPopover id={administrativeArea.id} />
             }
-              EditComponent={(
+              EditComponent={isFABReplaced && (
                 <Security needs={[KNOWLEDGE_KNUPDATE]}>
                   <AdministrativeAreaEdition
                     administrativeAreaId={administrativeArea.id}
@@ -222,8 +227,10 @@ const RootAdministrativeAreaComponent = ({ queryRef, administrativeAreaId }) => 
               <Route
                 path="/knowledge/*"
                 element={
-                  <AdministrativeAreaKnowledge administrativeAreaData={administrativeArea} />
-              }
+                  <div key={forceUpdate}>
+                    <AdministrativeAreaKnowledge administrativeAreaData={administrativeArea} />
+                  </div>
+                }
               />
               <Route
                 path="/analyses"

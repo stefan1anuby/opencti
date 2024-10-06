@@ -93,7 +93,7 @@ const inlineStylesLight = {
 
 const StyledBadge = styled(Badge)(() => ({
   '& .MuiBadge-badge': {
-    right: 9,
+    right: 8,
     top: 4,
   },
 }));
@@ -138,6 +138,7 @@ const ItemMarkings = ({ variant, markingDefinitions, limit, onClick }) => {
               backgroundColor,
               color: textColor,
               border,
+              cursor: onClick ? 'pointer' : 'default',
             }}
             label={markingDefinition.definition}
             onClick={(e) => {
@@ -226,7 +227,7 @@ const ItemMarkings = ({ variant, markingDefinitions, limit, onClick }) => {
           <Chip
             key={markingDefinition.definition}
             className={className}
-            style={inlineStyles.transparent}
+            style={{ ...inlineStyles.transparent, cursor: onClick ? 'pointer' : 'default' }}
             label={t_i18n(markingDefinition.definition)}
             variant="outlined"
             onClick={(e) => {
@@ -280,11 +281,11 @@ const ItemMarkings = ({ variant, markingDefinitions, limit, onClick }) => {
       }
       placement="bottom"
     >
-      <span>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
         <StyledBadge variant="dot" color="primary">
           {R.take(limit, markings).map((markingDefinition) => renderChip(markingDefinition))}
         </StyledBadge>
-      </span>
+      </div>
     </EnrichedTooltip>
   );
 };
